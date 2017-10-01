@@ -16,12 +16,10 @@ use amethyst::ecs::{Component, DenseVecStorage, ECSBundle, Fetch, FetchMut, Join
 use amethyst::ecs::audio::DjBundle;
 use amethyst::ecs::input::{InputBundle, InputHandler};
 use amethyst::ecs::rendering::{Factory, MaterialComponent, MeshComponent, RenderBundle};
-use amethyst::ecs::rendering::events::WindowModifierEvent;
 use amethyst::ecs::transform::{LocalTransform, Transform, TransformBundle};
 use amethyst::prelude::*;
 use amethyst::renderer::Config as DisplayConfig;
 use amethyst::renderer::prelude::*;
-use amethyst::shrev::EventHandler;
 use amethyst::timing::Time;
 use futures::{Future, IntoFuture};
 
@@ -339,20 +337,11 @@ impl State for Pong {
                 score_sfx,
             });
             // Sets the cursor hidden when the mouse is hovering the pong window.
-            if let Some(mut window_events) = engine
-                .world
-                .res
-                .try_fetch_mut::<EventHandler<WindowModifierEvent>>(0)
-            {
-                window_events.write_single(WindowModifierEvent {
-                    modify: Box::new(|win| {
-                        win.set_cursor_state(winit::CursorState::Hide)
-                            .ok()
-                            .expect("Could not hide mouse cursor")
-                    }),
-                });
-            }
-
+            engine.window_command(|win| {
+                win.set_cursor_state(winit::CursorState::Hide)
+                    .ok()
+                    .expect("Could not hide mouse cursor")
+            });
             let have_output = engine.world.read_resource::<Option<Output>>().is_some();
 
             if have_output {
