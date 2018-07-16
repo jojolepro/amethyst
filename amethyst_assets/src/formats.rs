@@ -7,13 +7,14 @@ use {Asset, SimpleFormat};
 #[derive(Default, Clone, Debug)]
 pub struct RonFormat;
 
-impl<T> SimpleFormat<T> for RonFormat
+impl<T> SimpleFormat for RonFormat
 where
     T: Asset,
     T::Data: for<'a> Deserialize<'a> + Send + Sync + 'static,
 {
     const NAME: &'static str = "Ron";
     type Options = ();
+    type TargetAsset = T;
 
     fn import(&self, bytes: Vec<u8>, _: ()) -> Result<T::Data, Error> {
         use ron::de::Deserializer;

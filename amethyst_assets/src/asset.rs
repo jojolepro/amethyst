@@ -32,13 +32,15 @@ pub trait Asset: Send + Sync + 'static {
 /// A format, providing a conversion from bytes to asset data, which is then
 /// in turn accepted by `Asset::from_data`. Examples for formats are
 /// `Png`, `Obj` and `Wave`.
-pub trait Format<A: Asset>: Send + 'static {
+pub trait Format: Send + 'static {
     /// A unique identifier for this format.
     const NAME: &'static str;
     /// Options specific to the format, which are passed to `import`.
     /// E.g. for textures this would be stuff like mipmap levels and
     /// sampler info.
     type Options: Send + 'static;
+
+    type TargetAsset: Asset;
 
     /// Reads the given bytes and produces asset data.
     ///
@@ -54,7 +56,7 @@ pub trait Format<A: Asset>: Send + 'static {
         source: Arc<Source>,
         options: Self::Options,
         create_reload: bool,
-    ) -> Result<FormatValue<A>>;
+    ) -> Result<FormatValue<Self::TargetAsset>>;
 }
 
 /// The `Ok` return value of `Format::import` for a given asset type `A`.
@@ -77,7 +79,7 @@ impl<A: Asset> FormatValue<A> {
 /// All `SimpleFormat` types automatically implement `Format`.
 /// This format assumes that the asset name is the full path and the asset is only
 /// contained in one file.
-pub trait SimpleFormat<A: Asset> {
+pub trait SimpleFormat {
     /// A unique identifier for this format.
     const NAME: &'static str;
     /// Options specific to the format, which are passed to `import`.
@@ -85,17 +87,19 @@ pub trait SimpleFormat<A: Asset> {
     /// sampler info.
     type Options: Clone + Send + Sync + 'static;
 
+    type TargetAsset: Asset;
+
     /// Produces asset data from given bytes.
     fn import(&self, bytes: Vec<u8>, options: Self::Options) -> Result<A::Data>;
 }
 
-impl<A, T> Format<A> for T
+impl<T> Format for T
 where
-    A: Asset,
-    T: SimpleFormat<A> + Clone + Send + Sync + 'static,
+    T: SimpleFormat + Clone + Send + Sync + 'static,
 {
     const NAME: &'static str = T::NAME;
     type Options = T::Options;
+    type TargetAsset = T::TargetAsset;
 
     fn import(
         &self,
@@ -103,7 +107,7 @@ where
         source: Arc<Source>,
         options: Self::Options,
         create_reload: bool,
-    ) -> Result<FormatValue<A>> {
+    ) -> Result<FormatValue<Self::TargetAsset>> {
         #[cfg(feature = "profiler")]
         profile_scope!("import_asset");
         if create_reload {

@@ -22,10 +22,11 @@ impl SimpleFormat<Audio> for WavFormat {
 #[derive(Clone)]
 pub struct OggFormat;
 
-impl SimpleFormat<Audio> for OggFormat {
+impl SimpleFormat for OggFormat {
     const NAME: &'static str = "OGG";
 
     type Options = ();
+    type TargetAsset = Audio;
 
     fn import(&self, bytes: Vec<u8>, _: ()) -> Result<AudioData> {
         Ok(AudioData(bytes))

@@ -319,39 +319,37 @@ where
 /// - `A`: `Asset`,
 /// - `F`: `Format` for loading `A`
 #[derive(Deserialize, Serialize)]
-pub enum AssetPrefab<A, F>
+pub enum AssetPrefab<F>
 where
-    A: Asset,
-    F: Format<A>,
+    F: Format,
 {
     /// From existing handle
     #[serde(skip)]
-    Handle(Handle<A>),
+    Handle(Handle<F::TargetAsset>),
 
     /// From file, (name, format, format options)
     File(String, F, F::Options),
 }
 
-impl<'a, A, F> PrefabData<'a> for AssetPrefab<A, F>
+impl<'a, F> PrefabData<'a> for AssetPrefab<F>
 where
-    A: Asset,
-    F: Format<A> + Clone,
+    F: Format + Clone,
     F::Options: Clone,
 {
     type SystemData = (
         ReadExpect<'a, Loader>,
-        WriteStorage<'a, Handle<A>>,
-        Read<'a, AssetStorage<A>>,
+        WriteStorage<'a, Handle<F::TargetAsset>>,
+        Read<'a, AssetStorage<F::TargetAsset>>,
     );
 
-    type Result = Handle<A>;
+    type Result = Handle<F::TargetAsset>;
 
     fn load_prefab(
         &self,
         entity: Entity,
         system_data: &mut Self::SystemData,
         _: &[Entity],
-    ) -> Result<Handle<A>, PrefabError> {
+    ) -> Result<Handle<F::TargetAsset>, PrefabError> {
         let handle = match *self {
             AssetPrefab::Handle(ref handle) => handle.clone(),
             AssetPrefab::File(ref name, ref format, ref options) => system_data.0.load(
@@ -418,11 +416,12 @@ where
         format: F,
         options: F::Options,
         progress: P,
-    ) -> Handle<Prefab<T>>
+    ) -> Handle<F::TargetAsset>
     where
-        F: Format<Prefab<T>>,
+        F: Format,
         N: Into<String>,
         P: Progress,
+        F::TargetAsset: Prefab<T>,
     {
         self.loader
             .load(name, format, options, progress, &self.storage)
