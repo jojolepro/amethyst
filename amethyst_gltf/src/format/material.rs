@@ -18,6 +18,7 @@ pub fn load_material(
     name: &str,
 ) -> Result<MaterialPrefab<TextureFormat>, GltfError> {
     let mut prefab = MaterialPrefab::default();
+    info!("TEXTURE base_color_texture: {:?} BASE_COLOR_FACTOR: {:?}", material.pbr_metallic_roughness().base_color_texture(), material.pbr_metallic_roughness().base_color_factor());
     prefab.albedo = Some(
         load_texture_with_factor(
             material.pbr_metallic_roughness().base_color_texture(),
@@ -81,6 +82,8 @@ pub fn load_material(
 
         None => None,
     };
+
+    info!("TRANSPARENT(should be blend): {:?}", material.alpha_mode());
     prefab.transparent = if let AlphaMode::Blend = material.alpha_mode() {
         true
     } else {
@@ -186,6 +189,7 @@ fn load_sampler_info(sampler: &gltf::texture::Sampler) -> SamplerInfo {
         WrappingMode::MirroredRepeat => WrapMode::Mirror,
         WrappingMode::Repeat => WrapMode::Tile,
     };
+    info!("WRAP MODE S: {:?} T: {:?}", wrap_s, wrap_t);
     let mut s = SamplerInfo::new(filter, wrap_s);
     s.wrap_mode.1 = wrap_t;
     s
