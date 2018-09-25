@@ -18,7 +18,7 @@ pub fn load_material(
     name: &str,
 ) -> Result<MaterialPrefab<TextureFormat>, GltfError> {
     let mut prefab = MaterialPrefab::default();
-    info!("TEXTURE base_color_texture: {:?} BASE_COLOR_FACTOR: {:?}", material.pbr_metallic_roughness().base_color_texture(), material.pbr_metallic_roughness().base_color_factor());
+    info!("NAME: {}, TEXTURE base_color_texture: {:?} BASE_COLOR_FACTOR: {:?}", name, material.pbr_metallic_roughness().base_color_texture(), material.pbr_metallic_roughness().base_color_factor());
     prefab.albedo = Some(
         load_texture_with_factor(
             material.pbr_metallic_roughness().base_color_texture(),
