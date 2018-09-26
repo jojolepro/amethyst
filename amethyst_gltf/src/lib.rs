@@ -174,7 +174,6 @@ impl<'a> PrefabData<'a> for GltfPrefab {
         <MaterialPrefab<TextureFormat> as PrefabData<'a>>::SystemData,
         <AnimatablePrefab<usize, Transform> as PrefabData<'a>>::SystemData,
         <SkinnablePrefab as PrefabData<'a>>::SystemData,
-        WriteStorage<'a, Transparent>,
         WriteStorage<'a, GltfNodeExtent>,
         // TODO make optional after prefab refactor. We need a way to pass options to decide to enable this or not, but without touching the prefab.
         WriteStorage<'a, MeshData>,
@@ -194,7 +193,6 @@ impl<'a> PrefabData<'a> for GltfPrefab {
             ref mut materials,
             ref mut animatables,
             ref mut skinnables,
-            ref mut transparents,
             ref mut extents,
             ref mut mesh_data,
         ) = system_data;
@@ -203,7 +201,6 @@ impl<'a> PrefabData<'a> for GltfPrefab {
         }
         if let Some(ref mesh) = self.mesh {
             mesh_data.insert(entity, mesh.clone())?;
-            transparents.insert(entity, Transparent)?;
         }
         if let Some(ref mesh) = self.mesh_handle {
             meshes.1.insert(entity, mesh.clone())?;
@@ -212,6 +209,7 @@ impl<'a> PrefabData<'a> for GltfPrefab {
             name.load_prefab(entity, names, entities)?;
         }
         if let Some(ref material) = self.material {
+            info!("LOADING MATERIAL: {:?}", self.material);
             material.load_prefab(entity, materials, entities)?;
         }
         if let Some(ref animatable) = self.animatable {
@@ -231,7 +229,7 @@ impl<'a> PrefabData<'a> for GltfPrefab {
         progress: &mut ProgressCounter,
         system_data: &mut Self::SystemData,
     ) -> Result<bool, Error> {
-        let (_, ref mut meshes, _, ref mut materials, ref mut animatables, _, _, _, _) = system_data;
+        let (_, ref mut meshes, _, ref mut materials, ref mut animatables, _, _, _) = system_data;
         let mut ret = false;
         if let Some(ref mesh) = self.mesh {
             self.mesh_handle = Some(meshes.0.load_from_data(
