@@ -148,12 +148,13 @@ fn load_texture_with_factor(
     source: Arc<Source>,
     name: &str,
 ) -> Result<(TextureData, [f32; 4]), GltfError> {
+    info!("TEXTURE COLOR fACTOR {:?}", factor);
     match texture {
         Some(info) => Ok((
             load_texture(&info.texture(), buffers, source, name)?,
             factor,
         )),
-        None => Ok((TextureData::color(factor), [1.0, 1.0, 1.0, factor[3]])),
+        None => Ok((TextureData::color(factor), [1.0, 1.0, 1.0, 1.0])),
     }
 }
 
