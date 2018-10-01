@@ -153,7 +153,7 @@ fn load_texture_with_factor(
             load_texture(&info.texture(), buffers, source, name)?,
             factor,
         )),
-        None => Ok((TextureData::color(factor), [1.0, 1.0, 1.0, 1.0])),
+        None => Ok((TextureData::color(factor), [1.0, 1.0, 1.0, factor[3]])),
     }
 }
 
