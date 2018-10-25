@@ -11,8 +11,8 @@ use amethyst::animation::{
     EndControl, VertexSkinningBundle,
 };
 use amethyst::assets::{
-    AssetPrefab, Completion, Handle, Prefab, PrefabData, PrefabLoader, PrefabLoaderSystem,
-    ProgressCounter, RonFormat, PrefabError,
+    AssetPrefab, Completion, Handle, Prefab, PrefabData, PrefabError, PrefabLoader,
+    PrefabLoaderSystem, ProgressCounter, RonFormat,
 };
 use amethyst::controls::{ControlTagPrefab, FlyControlBundle};
 use amethyst::core::transform::{GlobalTransform, Transform, TransformBundle};
