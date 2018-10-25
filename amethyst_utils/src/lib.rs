@@ -5,6 +5,8 @@
 extern crate amethyst_assets;
 extern crate amethyst_controls;
 extern crate amethyst_core;
+#[macro_use]
+extern crate amethyst_derive;
 extern crate amethyst_renderer;
 
 // Used for tests.
