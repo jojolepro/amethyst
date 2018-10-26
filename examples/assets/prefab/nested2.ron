@@ -1,0 +1,17 @@
+#![enable(implicit_some)]
+Prefab (
+    entities: [
+        (
+            // This will get added to the first entity of nested1.ron
+            data: (
+                transform: (
+                    translation: (
+                        x: 0.0,
+                        y: 0.0,
+                        z: -5.0,
+                    ),
+                ),
+            ),
+        ),
+    ],
+)

@@ -9,6 +9,15 @@ use {Asset, AssetStorage, Format, Handle, Loader, Progress, ProgressCounter};
 mod impls;
 mod system;
 
+/// Type alias used to declare recursive prefabs inside a PrefabData definition.
+/// Generic types:
+/// - T: The PrefabData type. Usually the same type as the PrefabData it is used in.
+///      Note: Does not compile if said type has generic types, as it causes an infinite
+///            compiler loop when checking the type bounds of the PrefabData.
+///            You need to impl Default manually. Deriving it will cause the same issue.
+/// - F: The Format used to load the sub prefab asset from file (usually RonFormat).
+pub type SubPrefab<T, F> = AssetPrefab<Prefab<T>, F>;
+
 /// Trait for loading a prefabs data for a single entity
 pub trait PrefabData<'a> {
     /// `SystemData` needed to perform the load

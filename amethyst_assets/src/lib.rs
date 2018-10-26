@@ -41,7 +41,7 @@ pub use error::{Error, ErrorKind, Result, ResultExt};
 pub use formats::JsonFormat;
 pub use formats::RonFormat;
 pub use loader::Loader;
-pub use prefab::{AssetPrefab, Prefab, PrefabData, PrefabError, PrefabLoader, PrefabLoaderSystem};
+pub use prefab::{AssetPrefab, Prefab, PrefabData, PrefabError, PrefabLoader, PrefabLoaderSystem, PrefabTag, SubPrefab};
 pub use progress::{Completion, Progress, ProgressCounter, Tracker};
 pub use reload::{HotReloadBundle, HotReloadStrategy, HotReloadSystem, Reload, SingleFile};
 pub use source::{Directory, Source};

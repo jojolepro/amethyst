@@ -1,0 +1,11 @@
+#![enable(implicit_some)]
+Prefab (
+    entities: [
+        (
+            data: (
+                removal: 0,
+                sub: Asset(File("prefab/nested2.ron", RonFormat, ())),
+            ),
+        ),
+    ],
+)

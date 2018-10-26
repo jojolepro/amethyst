@@ -3,7 +3,7 @@ use serde::Deserialize;
 use {Asset, SimpleFormat};
 
 /// Format for loading from Ron files.
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Deserialize, Serialize)]
 pub struct RonFormat;
 
 impl<T> SimpleFormat<T> for RonFormat
