@@ -194,7 +194,8 @@ impl<'s> System<'s> for UiButtonSystem {
                             }
                         }
                     }
-                }
+                },
+                _=> {},
             }
         }
     }

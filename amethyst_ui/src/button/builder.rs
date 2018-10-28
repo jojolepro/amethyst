@@ -6,7 +6,7 @@ use amethyst_renderer::{Texture, TextureHandle};
 use font::default::get_default_font;
 use shred::SystemData;
 use {
-    Anchor, FontAsset, FontHandle, MouseReactive, OnUiActionImage, OnUiActionSound, Stretch,
+    Anchor, FontAsset, FontHandle, Interactable, OnUiActionImage, OnUiActionSound, Stretch,
     UiButton, UiImage, UiText, UiTransform,
 };
 
@@ -25,7 +25,7 @@ pub struct UiButtonBuilderResources<'a> {
     loader: ReadExpect<'a, Loader>,
     entities: Entities<'a>,
     image: WriteStorage<'a, UiImage>,
-    mouse_reactive: WriteStorage<'a, MouseReactive>,
+    mouse_reactive: WriteStorage<'a, Interactable>,
     parent: WriteStorage<'a, Parent>,
     text: WriteStorage<'a, UiText>,
     transform: WriteStorage<'a, UiTransform>,
@@ -258,7 +258,7 @@ impl UiButtonBuilder {
                 },
             ).unwrap();
         res.mouse_reactive
-            .insert(image_entity, MouseReactive)
+            .insert(image_entity, Interactable)
             .unwrap();
         if let Some(parent) = self.parent.take() {
             res.parent

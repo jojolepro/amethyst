@@ -113,7 +113,7 @@ impl UiTransformBuilder {
 impl<'a> PrefabData<'a> for UiTransformBuilder {
     type SystemData = (
         WriteStorage<'a, UiTransform>,
-        WriteStorage<'a, MouseReactive>,
+        WriteStorage<'a, Interactable>,
         WriteStorage<'a, HiddenPropagate>,
     );
     type Result = ();
@@ -145,7 +145,7 @@ impl<'a> PrefabData<'a> for UiTransformBuilder {
         }
         system_data.0.insert(entity, transform)?;
         if self.mouse_reactive {
-            system_data.1.insert(entity, MouseReactive)?;
+            system_data.1.insert(entity, Interactable)?;
         }
 
         if self.hidden {

@@ -1,3 +1,4 @@
+use amethyst_core::cgmath::Vector2;
 use amethyst_core::shrev::EventChannel;
 use amethyst_core::specs::prelude::{
     Component, Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write,
@@ -14,15 +15,22 @@ use transform::UiTransform;
 #[derive(Debug, Clone)]
 pub enum UiEventType {
     /// When an element is clicked normally.
+    /// Includes touch events.
     Click,
     /// When the element starts being clicked (On left mouse down).
+    /// Includes touch events.
     ClickStart,
     /// When the element stops being clicked (On left mouse up).
+    /// Includes touch events.
     ClickStop,
     /// When the cursor gets over an element.
     HoverStart,
     /// When the cursor stops being over an element.
     HoverStop,
+    /// When dragging a `Draggable` Ui element.
+    Dragging {element_offset: Vector2<f32>},
+    /// When stopping to drag a `Draggable` Ui element.
+    Dropped {dropped_on: Entity},
 }
 
 /// A ui event instance.
@@ -45,13 +53,13 @@ impl UiEvent {
 /// Will only work if the entity has a UiTransform component attached to it.
 /// Without this, the ui element will not generate events.
 #[derive(Default, Serialize, Deserialize, Clone)]
-pub struct MouseReactive;
+pub struct Interactable;
 
-impl Component for MouseReactive {
-    type Storage = NullStorage<MouseReactive>;
+impl Component for Interactable {
+    type Storage = NullStorage<Interactable>;
 }
 
-/// The system that generates events for `MouseReactive` enabled entities.
+/// The system that generates events for `Interactable` enabled entities.
 /// The generic types A and B represent the A and B generic parameter of the InputHandler<A,B>.
 pub struct UiMouseSystem<A, B> {
     was_down: bool,
@@ -80,7 +88,7 @@ where
     type SystemData = (
         Entities<'a>,
         ReadStorage<'a, UiTransform>,
-        ReadStorage<'a, MouseReactive>,
+        ReadStorage<'a, Interactable>,
         Read<'a, InputHandler<A, B>>,
         ReadExpect<'a, ScreenDimensions>,
         Write<'a, EventChannel<UiEvent>>,
@@ -140,7 +148,7 @@ where
 
 fn targeted<'a, I>(pos: (f32, f32), transforms: I) -> Option<Entity>
 where
-    I: Iterator<Item = (Entity, &'a UiTransform, Option<&'a MouseReactive>)> + 'a,
+    I: Iterator<Item = (Entity, &'a UiTransform, Option<&'a Interactable>)> + 'a,
 {
     transforms
         .filter(|(_e, t, _m)| t.opaque && t.position_inside(pos.0, pos.1))

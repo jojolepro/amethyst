@@ -49,11 +49,13 @@ mod prefab;
 mod resize;
 mod text;
 mod transform;
+mod selection;
+mod selection_order_cache;
 
 pub use self::action_components::{OnUiActionImage, OnUiActionSound};
 pub use self::bundle::UiBundle;
 pub use self::button::{UiButton, UiButtonBuilder, UiButtonBuilderResources, UiButtonSystem};
-pub use self::event::{MouseReactive, UiEvent, UiEventType, UiMouseSystem};
+pub use self::event::{Interactable, UiEvent, UiEventType, UiMouseSystem};
 pub use self::focused::UiFocused;
 pub use self::font::default::get_default_font;
 pub use self::font::systemfont::{
@@ -70,6 +72,8 @@ pub use self::prefab::{
 pub use self::resize::{ResizeSystem, UiResize};
 pub use self::text::{LineMode, TextEditing, UiKeyboardSystem, UiText};
 pub use self::transform::{UiFinder, UiTransform};
+pub use self::selection::{Selectable, Selected, SelectionSystem};
+pub use self::selection_order_cache::{CachedSelectionOrder, CacheSelectionOrderSystem};
 
 /// How many times the cursor blinks per second while editing text.
 const CURSOR_BLINK_RATE: f32 = 2.0;
