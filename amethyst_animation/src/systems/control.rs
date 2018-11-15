@@ -1,19 +1,22 @@
-use amethyst_assets::{AssetStorage, Handle};
-use amethyst_core::specs::prelude::{
-    Component, Entities, Entity, Join, Read, ReadStorage, Resources, System, SystemData,
-    WriteStorage,
-};
-use amethyst_core::timing::secs_to_duration;
+use std::{hash::Hash, marker, time::Duration};
+
 use fnv::FnvHashMap;
 use minterpolate::InterpolationPrimitive;
+
+use amethyst_assets::{AssetStorage, Handle};
+use amethyst_core::{
+    specs::prelude::{
+        Component, Entities, Entity, Join, Read, ReadStorage, Resources, System, SystemData,
+        WriteStorage,
+    },
+    timing::secs_to_duration,
+};
+
 use resources::{
     Animation, AnimationCommand, AnimationControl, AnimationControlSet, AnimationHierarchy,
     AnimationSampling, AnimationSet, ApplyData, ControlState, DeferStartRelation, RestState,
     Sampler, SamplerControl, SamplerControlSet, StepDirection,
 };
-use std::hash::Hash;
-use std::marker;
-use std::time::Duration;
 
 /// System for setting up animations, should run before `SamplerInterpolationSystem`.
 ///
@@ -158,7 +161,8 @@ where
                     .deferred_animations
                     .iter()
                     .position(|a| a.animation_id == id)
-                    .unwrap();
+                    .expect("Unreachable: Id of current `deferred_start` was taken from previous loop over `deferred_animations`");
+
                 let mut def = control_set.deferred_animations.remove(index);
                 def.control.state = ControlState::Deferred(secs_to_duration(start_dur));
                 def.control.command = AnimationCommand::Start;
@@ -459,12 +463,16 @@ where
 
     // setup sampler tree
     for &(ref node_index, ref channel, ref sampler_handle) in &animation.nodes {
-        let node_entity = &hierarchy.nodes[node_index];
+        let node_entity = hierarchy.nodes.get(node_index).expect(
+            "Unreachable: Existence of all nodes are checked in validation of hierarchy above",
+        );
         let component = rest_states
             .get(*node_entity)
             .map(|r| r.state())
             .or_else(|| targets.get(*node_entity))
-            .unwrap();
+            .expect(
+                "Unreachable: Existence of all nodes are checked in validation of hierarchy above",
+            );
         let sampler_control = SamplerControl::<T> {
             control_id: control.id,
             channel: channel.clone(),

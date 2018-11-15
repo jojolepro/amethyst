@@ -15,7 +15,7 @@ use amethyst::assets::{
     PrefabLoaderSystem, ProgressCounter, RonFormat,
 };
 use amethyst::controls::{ControlTagPrefab, FlyControlBundle};
-use amethyst::core::transform::{GlobalTransform, Transform, TransformBundle};
+use amethyst::core::transform::{Transform, TransformBundle};
 use amethyst::ecs::prelude::{Entity, ReadStorage, Write, WriteStorage};
 use amethyst::input::{is_close_requested, is_key_down};
 use amethyst::prelude::*;

@@ -1,27 +1,33 @@
 //! Flat forward drawing pass that mimics a blit.
 
-use amethyst_assets::{AssetStorage, Handle};
-use amethyst_core::cgmath::Vector4;
-use amethyst_core::specs::prelude::{Join, Read, ReadStorage};
-use amethyst_core::transform::GlobalTransform;
-
+use gfx::pso::buffer::ElemStride;
 use gfx_core::state::{Blend, ColorMask};
 use glsl_layout::Uniform;
 
+use amethyst_assets::{AssetStorage, Handle};
+use amethyst_core::{
+    nalgebra::Vector4,
+    specs::prelude::{Join, Read, ReadStorage},
+    transform::GlobalTransform,
+};
+
+use {
+    cam::{ActiveCamera, Camera},
+    error::Result,
+    hidden::{Hidden, HiddenPropagate},
+    pass::util::{add_texture, get_camera, set_view_args, setup_textures, ViewArgs},
+    pipe::{
+        pass::{Pass, PassData},
+        DepthMode, Effect, NewEffect,
+    },
+    sprite::{SpriteRender, SpriteSheet},
+    sprite_visibility::SpriteVisibility,
+    tex::Texture,
+    types::{Encoder, Factory, Slice},
+    vertex::{Attributes, Query, VertexFormat},
+};
+
 use super::*;
-use cam::{ActiveCamera, Camera};
-use error::Result;
-use gfx::pso::buffer::ElemStride;
-use hidden::{Hidden, HiddenPropagate};
-use mtl::MaterialTextureSet;
-use pass::util::{add_texture, get_camera, set_view_args, setup_textures, ViewArgs};
-use pipe::pass::{Pass, PassData};
-use pipe::{DepthMode, Effect, NewEffect};
-use sprite::{SpriteRender, SpriteSheet};
-use sprite_visibility::SpriteVisibility;
-use tex::Texture;
-use types::{Encoder, Factory, Slice};
-use vertex::{Attributes, Query, VertexFormat};
 
 /// Draws sprites on a 2D quad.
 #[derive(Derivative, Clone, Debug)]
@@ -62,7 +68,6 @@ impl<'a> PassData<'a> for DrawSprite {
         ReadStorage<'a, Camera>,
         Read<'a, AssetStorage<SpriteSheet>>,
         Read<'a, AssetStorage<Texture>>,
-        Read<'a, MaterialTextureSet>,
         Option<Read<'a, SpriteVisibility>>,
         ReadStorage<'a, Hidden>,
         ReadStorage<'a, HiddenPropagate>,
@@ -101,7 +106,6 @@ impl Pass for DrawSprite {
             camera,
             sprite_sheet_storage,
             tex_storage,
-            material_texture_set,
             visibility,
             hidden,
             hidden_prop,
@@ -120,7 +124,6 @@ impl Pass for DrawSprite {
                         sprite_render,
                         Some(global),
                         &sprite_sheet_storage,
-                        &material_texture_set,
                         &tex_storage,
                     );
                 }
@@ -134,7 +137,6 @@ impl Pass for DrawSprite {
                         sprite_render,
                         Some(global),
                         &sprite_sheet_storage,
-                        &material_texture_set,
                         &tex_storage,
                     );
                 }
@@ -148,7 +150,6 @@ impl Pass for DrawSprite {
                             sprite_render,
                             global.get(*entity),
                             &sprite_sheet_storage,
-                            &material_texture_set,
                             &tex_storage,
                         );
                     }
@@ -185,34 +186,25 @@ impl SpriteBatch {
         sprite_render: &SpriteRender,
         global: Option<&GlobalTransform>,
         sprite_sheet_storage: &AssetStorage<SpriteSheet>,
-        material_texture_set: &MaterialTextureSet,
         tex_storage: &AssetStorage<Texture>,
     ) {
-        if global.is_none() {
-            return;
-        }
+        let global = match global {
+            Some(v) => v,
+            None => return,
+        };
 
         let texture_handle = match sprite_sheet_storage.get(&sprite_render.sprite_sheet) {
-            Some(sprite_sheet) => match material_texture_set.handle(sprite_sheet.texture_id) {
-                Some(texture_handle) => {
-                    if tex_storage.get(&texture_handle).is_none() {
-                        warn!(
-                            "Texture not loaded for texture id: `{}`.",
-                            sprite_sheet.texture_id
-                        );
-                        return;
-                    }
-
-                    texture_handle
-                }
-                None => {
+            Some(sprite_sheet) => {
+                if tex_storage.get(&sprite_sheet.texture).is_none() {
                     warn!(
-                        "Texture handle not found for texture id: `{}`.",
-                        sprite_sheet.texture_id
+                        "Texture not loaded for texture: `{:?}`.",
+                        sprite_sheet.texture
                     );
                     return;
                 }
-            },
+
+                sprite_sheet.texture.clone()
+            }
             None => {
                 warn!(
                     "Sprite sheet not loaded for sprite_render: `{:?}`.",
@@ -225,7 +217,7 @@ impl SpriteBatch {
         self.sprites.push(SpriteDrawData {
             texture: texture_handle,
             render: sprite_render.clone(),
-            transform: *global.unwrap(),
+            transform: *global,
         });
     }
 
@@ -245,9 +237,11 @@ impl SpriteBatch {
         sprite_sheet_storage: &AssetStorage<SpriteSheet>,
         tex_storage: &AssetStorage<Texture>,
     ) {
-        use gfx::buffer;
-        use gfx::memory::{Bind, Typed};
-        use gfx::Factory;
+        use gfx::{
+            buffer,
+            memory::{Bind, Typed},
+            Factory,
+        };
 
         if self.sprites.is_empty() {
             return;
@@ -261,12 +255,16 @@ impl SpriteBatch {
         let num_sprites = self.sprites.len();
 
         for (i, sprite) in self.sprites.iter().enumerate() {
-            // `unwrap` checked when collecting the sprites.
+            // `unwrap`
             let sprite_sheet = sprite_sheet_storage
                 .get(&sprite.render.sprite_sheet)
-                .unwrap();
+                .expect(
+                    "Unreachable: Existence of sprite sheet checked when collecting the sprites",
+                );
 
-            let texture = tex_storage.get(&sprite.texture).unwrap();
+            let texture = tex_storage
+                .get(&sprite.texture)
+                .expect("Unable to get texture of sprite");
 
             // Append sprite to instance data.
             let sprite_data = &sprite_sheet.sprites[sprite.render.sprite_number];
@@ -285,8 +283,8 @@ impl SpriteBatch {
 
             let transform = &sprite.transform.0;
 
-            let dir_x = transform.x * sprite_data.width;
-            let dir_y = transform.y * sprite_data.height;
+            let dir_x = transform.column(0) * sprite_data.width;
+            let dir_y = transform.column(1) * sprite_data.height;
 
             // The offsets are negated to shift the sprite left and down relative to the entity, in
             // regards to pivot points. This is the convention adopted in:
@@ -314,7 +312,7 @@ impl SpriteBatch {
 
                 let vbuf = factory
                     .create_buffer_immutable(&instance_data, buffer::Role::Vertex, Bind::empty())
-                    .unwrap();
+                    .expect("Unable to create immutable buffer for `SpriteBatch`");
 
                 for _ in DrawSprite::attributes() {
                     effect.data.vertex_bufs.push(vbuf.raw().clone());

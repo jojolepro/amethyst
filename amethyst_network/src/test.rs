@@ -1,10 +1,12 @@
 #[cfg(test)]
 mod test {
-    use amethyst_core::shred::{Dispatcher, DispatcherBuilder, SystemData};
-    use amethyst_core::specs::{Builder, Join, World, WriteStorage};
-    use std::net::SocketAddr;
-    use std::thread::sleep;
-    use std::time::Duration;
+    use std::{net::SocketAddr, thread::sleep, time::Duration};
+
+    use amethyst_core::{
+        shred::{Dispatcher, DispatcherBuilder, SystemData},
+        specs::{Builder, Join, World, WriteStorage},
+    };
+
     use {NetConnection, NetEvent, NetSocketSystem};
 
     #[test]
@@ -60,6 +62,7 @@ mod test {
         sleep(Duration::from_millis(50));
         {
             let mut sto = WriteStorage::<NetConnection<()>>::fetch(&world_cl.res);
+
             for mut cmp in (&mut sto).join() {
                 for _i in 0..100 {
                     cmp.send_buffer.single_write(test_event.clone());

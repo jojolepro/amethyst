@@ -1,14 +1,17 @@
-use config::DisplayConfig;
-use error::{Error, Result};
 use fnv::FnvHashMap as HashMap;
 use gfx::memory::Pod;
-use mesh::{Mesh, MeshBuilder, VertexDataSet};
-use pipe::{
-    ColorBuffer, DepthBuffer, PipelineBuild, PipelineData, PolyPipeline, Target, TargetBuilder,
-};
-use tex::{Texture, TextureBuilder};
-use types::{ColorFormat, DepthFormat, Device, Encoder, Factory, Window};
 use winit::{dpi::LogicalSize, EventsLoop, Window as WinitWindow, WindowBuilder};
+
+use {
+    config::DisplayConfig,
+    error::{Error, Result},
+    mesh::{Mesh, MeshBuilder, VertexDataSet},
+    pipe::{
+        ColorBuffer, DepthBuffer, PipelineBuild, PipelineData, PolyPipeline, Target, TargetBuilder,
+    },
+    tex::{Texture, TextureBuilder},
+    types::{ColorFormat, DepthFormat, Device, Encoder, Factory, Window},
+};
 
 /// Generic renderer.
 pub struct Renderer {
@@ -117,7 +120,7 @@ impl Renderer {
                 .with_num_color_bufs(value.color_bufs().len())
                 .with_depth_buf(value.depth_buf().is_some())
                 .build(&mut self.factory, new_size)
-                .unwrap();
+                .expect("Unable to create new target when resizing");
             targets.insert(key, target);
         }
         pipe.new_targets(targets);
@@ -238,7 +241,8 @@ fn init_backend(wb: WindowBuilder, el: &mut EventsLoop, config: &DisplayConfig) 
     use gfx_window_dxgi as win;
 
     // FIXME: vsync + multisampling from config
-    let (win, dev, mut fac, color) = win::init::<ColorFormat>(wb, el).unwrap();
+    let (win, dev, mut fac, color) =
+        win::init::<ColorFormat>(wb, el).expect("Unable to initialize window (d3d11 backend)");
     let dev = gfx_device_dx11::Deferred::from(dev);
 
     let size = win.get_inner_size_points().ok_or(Error::WindowDestroyed)?;
@@ -264,7 +268,8 @@ fn init_backend(wb: WindowBuilder, el: &mut EventsLoop, config: &DisplayConfig) 
     use gfx_window_metal as win;
 
     // FIXME: vsync + multisampling from config
-    let (win, dev, mut fac, color) = win::init::<ColorFormat>(wb, el).unwrap();
+    let (win, dev, mut fac, color) =
+        win::init::<ColorFormat>(wb, el).expect("Unable to initialize window (metal backend)");
 
     let size = win.get_inner_size_points().ok_or(Error::WindowDestroyed)?;
     let (w, h) = (size.0 as u16, size.1 as u16);

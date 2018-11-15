@@ -1,11 +1,16 @@
-use super::{Buffers, GltfError};
-use animation::{JointPrefab, SkinPrefab, SkinnablePrefab};
-use assets::Prefab;
-use core::cgmath::{Matrix4, SquareMatrix};
-use gltf;
-use renderer::JointTransformsPrefab;
 use std::collections::HashMap;
+
+use gltf;
 use GltfPrefab;
+
+use {
+    animation::{JointPrefab, SkinPrefab, SkinnablePrefab},
+    assets::Prefab,
+    core::nalgebra::Matrix4,
+    renderer::JointTransformsPrefab,
+};
+
+use super::{Buffers, GltfError};
 
 pub fn load_skin(
     skin: &gltf::Skin,
@@ -17,8 +22,11 @@ pub fn load_skin(
 ) -> Result<(), GltfError> {
     let joints = skin
         .joints()
-        .map(|j| node_map.get(&j.index()).cloned().unwrap())
-        .collect::<Vec<_>>();
+        .map(|j| {
+            node_map.get(&j.index()).cloned().expect(
+                "Unreachable: `node_map` is initialized with the indexes from the `Gltf` object",
+            )
+        }).collect::<Vec<_>>();
 
     let reader = skin.reader(|buffer| buffers.buffer(&buffer));
 
