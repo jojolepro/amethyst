@@ -115,7 +115,7 @@ where
 			}
 		}
 
-		// Check if tab was pressed.
+		// Checks if tab was pressed.
 		// TODO: Controller support
 		for event in window_events.read(self.window_reader_id.as_mut().unwrap()) {
             match *event {

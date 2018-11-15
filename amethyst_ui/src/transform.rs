@@ -49,11 +49,6 @@ pub struct UiTransform {
     pub width: f32,
     /// The height of this UI element.
     pub height: f32,
-    /// The UI element tab order.  When the player presses tab the UI focus will shift to the
-    /// UI element with the next highest tab order, or if another element with the same tab_order
-    /// as this one exists they are ordered according to Entity creation order.  Shift-tab walks
-    /// this ordering backwards.
-    pub tab_order: i32,
     /// Global x position set by the `UiTransformSystem`.
     pub(crate) pixel_x: f32,
     /// Global y position set by the `UiTransformSystem`.
@@ -85,7 +80,6 @@ impl UiTransform {
         z: f32,
         width: f32,
         height: f32,
-        tab_order: i32,
     ) -> UiTransform {
         UiTransform {
             id,
@@ -96,7 +90,6 @@ impl UiTransform {
             local_z: z,
             width,
             height,
-            tab_order,
             pixel_x: x,
             pixel_y: y,
             global_z: z,
