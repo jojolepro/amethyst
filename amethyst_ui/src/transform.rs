@@ -163,7 +163,7 @@ mod tests {
     use super::*;
     #[test]
     fn inside_local() {
-        let tr = UiTransform::new("".to_string(), Anchor::TopLeft, 0.0, 0.0, 0.0, 1.0, 1.0, 0);
+        let tr = UiTransform::new("".to_string(), Anchor::TopLeft, 0.0, 0.0, 0.0, 1.0, 1.0);
         let pos = (-0.49, 0.20);
         assert!(tr.position_inside_local(pos.0, pos.1));
         let pos = (-1.49, 1.20);
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn inside_global() {
-        let tr = UiTransform::new("".to_string(), Anchor::TopLeft, 0.0, 0.0, 0.0, 1.0, 1.0, 0);
+        let tr = UiTransform::new("".to_string(), Anchor::TopLeft, 0.0, 0.0, 0.0, 1.0, 1.0);
         let pos = (-0.49, 0.20);
         assert!(tr.position_inside(pos.0, pos.1));
         let pos = (-1.49, 1.20);

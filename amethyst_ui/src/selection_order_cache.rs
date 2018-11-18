@@ -31,14 +31,14 @@ impl CachedSelectionOrder {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, new)]
 pub struct CacheSelectionOrderSystem<G> {
     phantom: PhantomData<G>,
 }
 
 impl<'a, G> System<'a> for CacheSelectionOrderSystem<G> 
 where
-    G: PartialEq + Clone + Send + Sync + 'static
+    G: PartialEq + Send + Sync + 'static
 {
 	type SystemData = (
 		Entities<'a>,

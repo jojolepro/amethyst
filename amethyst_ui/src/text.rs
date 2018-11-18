@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ops::Range};
+use std::{cmp::Ordering, ops::Range, marker::PhantomData};
 
 use clipboard::{ClipboardContext, ClipboardProvider};
 use gfx_glyph::{Point, PositionedGlyph};
@@ -12,7 +12,7 @@ use winit::{
 use amethyst_core::{
     shrev::{EventChannel, ReaderId},
     specs::prelude::{
-        Component, DenseVecStorage, Entities, Entity, Join, Read, ReadExpect, ReadStorage,
+        Component, DenseVecStorage, Entities, Join, Read, ReadExpect, ReadStorage,
         Resources, System, Write, WriteStorage,
     },
     timing::Time,
@@ -139,112 +139,46 @@ impl Component for TextEditing {
     type Storage = DenseVecStorage<Self>;
 }
 
-struct CachedTabOrder {
-    pub cached: BitSet,
-    pub cache: Vec<(i32, Entity)>,
-}
-
 /// This system processes the underlying UI data as needed.
-pub struct UiKeyboardSystem {
+pub struct UiKeyboardSystem<G> {
     /// A reader for winit events.
     reader: Option<ReaderId<Event>>,
-    /// A cache sorted by tab order, and then by Entity.
-    tab_order_cache: CachedTabOrder,
     /// This is set to true while the left mouse button is pressed.
     left_mouse_button_pressed: bool,
     /// The screen coordinates of the mouse
     mouse_position: (f32, f32),
+    _phantom: PhantomData<G>,
 }
 
-impl UiKeyboardSystem {
+impl<G> UiKeyboardSystem<G> {
     /// Creates a new instance of this system
     pub fn new() -> Self {
         Self {
             reader: None,
-            tab_order_cache: CachedTabOrder {
-                cached: BitSet::new(),
-                cache: Vec::new(),
-            },
             left_mouse_button_pressed: false,
             mouse_position: (0., 0.),
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<'a> System<'a> for UiKeyboardSystem {
+impl<'a, G: Send+Sync+PartialEq+'static> System<'a> for UiKeyboardSystem<G> {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, UiText>,
         WriteStorage<'a, TextEditing>,
         ReadStorage<'a, UiTransform>,
-        Write<'a, UiFocused>,
+        ReadStorage<'a, Selectable<G>>,
         Read<'a, EventChannel<Event>>,
         Read<'a, Time>,
         ReadExpect<'a, ScreenDimensions>,
+        Read<'a, CachedSelectionOrder>
     );
 
     fn run(
         &mut self,
-        (entities, mut text, mut editable, transform, mut focused, events, time, screen_dimensions): Self::SystemData,
+        (entities, mut text, mut editable, transform, selectables, events, time, screen_dimensions, tab_order_cache): Self::SystemData,
 ){
-        // Populate and update the tab order cache.
-        {
-            let bitset = &mut self.tab_order_cache.cached;
-            self.tab_order_cache.cache.retain(|&(_t, entity)| {
-                let keep = transform.contains(entity);
-                if !keep {
-                    bitset.remove(entity.id());
-                }
-                keep
-            });
-        }
-
-        for &mut (ref mut t, entity) in &mut self.tab_order_cache.cache {
-            *t = transform
-                .get(entity)
-                .expect("Unreachable: Entities are collected from a prepopulated cache")
-                .tab_order;
-        }
-
-        // Attempt to insert the new entities in sorted position.  Should reduce work during
-        // the sorting step.
-        let transform_set = transform.mask().clone();
-        {
-            // Create a bitset containing only the new indices.
-            let new = (&transform_set ^ &self.tab_order_cache.cached) & &transform_set;
-            for (entity, transform, _new) in (&*entities, &transform, &new).join() {
-                let pos = self
-                    .tab_order_cache
-                    .cache
-                    .iter()
-                    .position(|&(cached_t, _)| transform.tab_order < cached_t);
-                match pos {
-                    Some(pos) => self
-                        .tab_order_cache
-                        .cache
-                        .insert(pos, (transform.tab_order, entity)),
-                    None => self
-                        .tab_order_cache
-                        .cache
-                        .push((transform.tab_order, entity)),
-                }
-            }
-        }
-        self.tab_order_cache.cached = transform_set;
-
-        // Sort from smallest tab order to largest tab order, then by entity creation time.
-        // Most of the time this shouldn't do anything but you still need it for if the tab orders
-        // change.
-        self.tab_order_cache
-            .cache
-            .sort_unstable_by(|&(t1, ref e1), &(t2, ref e2)| {
-                let ret = t1.cmp(&t2);
-                if ret == Ordering::Equal {
-                    return e1.cmp(e2);
-                }
-                ret
-            });
-
         for text in (&mut text).join() {
             if (*text.text).chars().any(is_combining_mark) {
                 let normalized = text.text.nfd().collect::<String>();
@@ -270,47 +204,6 @@ impl<'a> System<'a> for UiKeyboardSystem {
         ) {
             // Process events for the whole UI.
             match *event {
-                Event::WindowEvent {
-                    event:
-                        WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::Tab),
-                                    modifiers,
-                                    ..
-                                },
-                            ..
-                        },
-                    ..
-                } => {
-                    if let Some(focused) = focused.entity.as_mut() {
-                        if let Some((i, _)) = self
-                            .tab_order_cache
-                            .cache
-                            .iter()
-                            .enumerate()
-                            .find(|&(_i, &(_, entity))| entity == *focused)
-                        {
-                            if !self.tab_order_cache.cache.is_empty() {
-                                if modifiers.shift {
-                                    if i == 0 {
-                                        let new_i = self.tab_order_cache.cache.len() - 1;
-                                        *focused = self.tab_order_cache.cache[new_i].1;
-                                    } else {
-                                        *focused = self.tab_order_cache.cache[i - 1].1;
-                                    }
-                                } else {
-                                    if i + 1 == self.tab_order_cache.cache.len() {
-                                        *focused = self.tab_order_cache.cache[0].1;
-                                    } else {
-                                        *focused = self.tab_order_cache.cache[i + 1].1;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 Event::WindowEvent {
                     event: WindowEvent::CursorMoved { position, .. },
                     ..

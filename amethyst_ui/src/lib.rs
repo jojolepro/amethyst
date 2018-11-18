@@ -12,6 +12,8 @@ extern crate amethyst_renderer;
 extern crate clipboard;
 #[macro_use]
 extern crate derivative;
+#[macro_use]
+extern crate derive_new;
 extern crate fnv;
 extern crate font_kit;
 extern crate gfx;
@@ -72,6 +74,8 @@ pub use self::{
         UiPrefab, UiTextBuilder, UiTransformBuilder, UiWidget,
     },
     resize::{ResizeSystem, UiResize},
+    selection::*,
+    selection_order_cache::{CachedSelectionOrder, CacheSelectionOrderSystem},
     text::{LineMode, TextEditing, UiKeyboardSystem, UiText},
     transform::{UiFinder, UiTransform},
 };

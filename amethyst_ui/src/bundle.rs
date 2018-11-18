@@ -18,24 +18,18 @@ use super::*;
 /// The generic types A and B represent the A and B generic parameter of the InputHandler<A,B>.
 ///
 /// Will fail with error 'No resource with the given id' if the InputBundle is not added.
-pub struct UiBundle<A, B, C = NoCustomUi> {
-    _marker: PhantomData<(A, B, C)>,
+#[derive(new)]
+pub struct UiBundle<A, B, C = NoCustomUi, G = ()> {
+    #[new(default)]
+    _marker: PhantomData<(A, B, C, G)>,
 }
 
-impl<A, B, C> UiBundle<A, B, C> {
-    /// Create a new UI bundle
-    pub fn new() -> Self {
-        UiBundle {
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl<'a, 'b, A, B, C> SystemBundle<'a, 'b> for UiBundle<A, B, C>
+impl<'a, 'b, A, B, C, G> SystemBundle<'a, 'b> for UiBundle<A, B, C, G>
 where
     A: Send + Sync + Eq + Hash + Clone + 'static,
     B: Send + Sync + Eq + Hash + Clone + 'static,
     C: ToNativeWidget,
+    G: Send + Sync + PartialEq + 'static,
 {
     fn build(self, builder: &mut DispatcherBuilder<'a, 'b>) -> Result<()> {
         builder.add(
@@ -54,9 +48,19 @@ where
             &["ui_loader"],
         );
         builder.add(
-            UiKeyboardSystem::new(),
+            CacheSelectionOrderSystem::<G>::new(),
+            "selection_order_cache",
+            &[],
+        );
+        builder.add(
+            UiKeyboardSystem::<G>::new(),
             "ui_keyboard_system",
             &["font_processor"],
+        );
+        builder.add(
+            SelectionSystem::<G, A, B>::new(),
+            "ui_selection",
+            &[],
         );
         builder.add(ResizeSystem::new(), "ui_resize_system", &[]);
         builder.add(

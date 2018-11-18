@@ -33,12 +33,15 @@ use amethyst_core::specs::Resources;
 /// Component indicating that a Ui entity is selectable.
 /// Generic Type:
 /// - G: Selection Group. Used to determine which entities can be selected together at the same time.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, new)]
 pub struct Selectable<G> {
 	pub order: u32,
+	#[new(default)]
 	pub multi_select_group: Option<G>,
+	#[new(default)]
 	pub auto_multi_select: bool,
 	/// Indicates if this requires the inputs (except Tab) be ignored when the component is focused.
+	#[new(default)]
 	pub require_input: bool,
 }
 
@@ -57,16 +60,18 @@ impl Component for Selected {
 /// System managing the selection of entities.
 /// Reacts to `UiEvent`.
 /// Reacts to Tab and Shift+Tab.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, new)]
 pub struct SelectionSystem<G, AX, AC> {
+	#[new(default)]
 	ui_reader_id: Option<ReaderId<UiEvent>>,
+	#[new(default)]
 	window_reader_id: Option<ReaderId<Event>>,
 	phantom: PhantomData<(G, AX, AC)>,
 }
 
 impl<'a, G, AX, AC> System<'a> for SelectionSystem<G, AX, AC> 
 where
-	G: Send + Sync + 'static + PartialEq + Clone,
+	G: Send + Sync + 'static + PartialEq,
 	AX: Hash + Eq + Clone + Send + Sync + 'static,
 	AC: Hash + Eq + Clone + Send + Sync + 'static,
 {
@@ -159,11 +164,11 @@ where
 	                		cached.cache.get(highest + 1).unwrap_or(cached.cache.first()
 	                			.expect("unreachable: A highest ui element was selected, but none exist in the cache."))
 	                	};
-	                	selecteds.insert(target.1, Selected);
+	                	selecteds.insert(target.1, Selected).expect("unreachable: We are inserting");
                 	} else {
                 		// If None, nothing was selected. Try to take lowest if it exists.
                 		if let Some(lowest) = cached.cache.first() {
-                			selecteds.insert(lowest.1, Selected);
+                			selecteds.insert(lowest.1, Selected).expect("unreachable: We are inserting");
                 		}
                 	}
                 },
@@ -177,15 +182,19 @@ where
 
 	        	if let Some(highest) = highest {
 	        		// Safe unwraps, we just got those values from the cache.
-	        		let highest_multi_select_group = selectables.get(cached.cache.get(highest).unwrap().1).unwrap().multi_select_group.clone();
 
-	        		let (target_multi_select_group, auto_multi_select) = {
-	        			// Safe unwrap because when filing the buffer we checked that the component still exist on the entity.
-	        			let target_selectable = selectables.get(clicked).unwrap();
-	        			(target_selectable.multi_select_group.clone(), target_selectable.auto_multi_select)
+	        		let (highest_is_select, auto_multi_select) = {
+	        			let highest_multi_select_group = &selectables.get(cached.cache.get(highest).unwrap().1).unwrap().multi_select_group;
+
+		        		let (target_multi_select_group, auto_multi_select) = {
+		        			// Safe unwrap because when filing the buffer we checked that the component still exist on the entity.
+		        			let target_selectable = selectables.get(clicked).unwrap();
+		        			(&target_selectable.multi_select_group, target_selectable.auto_multi_select)
+		        		};
+		        		(highest_multi_select_group == target_multi_select_group, auto_multi_select)
 	        		};
 
-	        		if highest_multi_select_group == target_multi_select_group {
+	        		if highest_is_select {
 		        		if shift {
 		        			// Add from latest selected to target for all that have same multi_select_group
 		        			let cached_index_clicked = cached.index_of(clicked)
@@ -199,24 +208,24 @@ where
 
 		        			for i in min..=max {
 		        				let target_entity = cached.cache.get(i).expect("unreachable: Range has to be inside of the cache range.");
-		        				selecteds.insert(target_entity.1, Selected);
+		        				selecteds.insert(target_entity.1, Selected).expect("unreachable: We are inserting");
 		        			}
 		        		} else if ctrl || auto_multi_select {
 		        			// Select adding single element
-		        			selecteds.insert(clicked, Selected);
+		        			selecteds.insert(clicked, Selected).expect("unreachable: We are inserting");
 		        		} else {
 		        			// Select replace, because we don't want to be adding elements.
 		        			selecteds.clear();
-		        			selecteds.insert(clicked, Selected);
+		        			selecteds.insert(clicked, Selected).expect("unreachable: We are inserting");
 		        		}
 		        	} else {
 		        		// Different multi select group than the latest one selected. Execute Select replace
 		        		selecteds.clear();
-		        		selecteds.insert(clicked, Selected);
+		        		selecteds.insert(clicked, Selected).expect("unreachable: We are inserting");
 		        	}
 	        	} else {
 	        		// Nothing was previously selected, let's just select single.
-	        		selecteds.insert(clicked, Selected);
+	        		selecteds.insert(clicked, Selected).expect("unreachable: We are inserting");
 	        	}
         	}
         }

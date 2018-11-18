@@ -16,8 +16,9 @@ use super::*;
 
 /// Loadable `UiTransform` data.
 /// By default z is equal to one.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Derivative)]
 #[serde(default)]
+#[derivative(Default)]
 pub struct UiTransformBuilder {
     /// An identifier. Serves no purpose other than to help you distinguish between UI elements.
     pub id: String,
@@ -25,6 +26,7 @@ pub struct UiTransformBuilder {
     pub x: f32,
     /// Y coordinate
     pub y: f32,
+    #[derivative(Default(value = "1.0"))]
     /// Z coordinate, defaults to one.
     pub z: f32,
     /// The width of this UI element.
@@ -39,6 +41,7 @@ pub struct UiTransformBuilder {
     /// Indicates if actions on the ui can go through this element.
     /// If set to false, the element will behaves as if it was transparent and will let events go to
     /// the next element (for example, the text on a button).
+    #[derivative(Default(value = "true"))]
     pub opaque: bool,
     /// Renders this UI element by evaluating transform as a percentage of the parent size,
     /// rather than rendering it with pixel units.
@@ -46,6 +49,7 @@ pub struct UiTransformBuilder {
     /// If a child ui element needs to fill its parent this can be used to stretch it to the appropriate size.
     pub stretch: Option<Stretch>,
     /// Indicates where the element sits, relative to the parent (or to the screen, if there is no parent)
+    #[derivative(Default(value = "Anchor::Middle"))]
     pub anchor: Anchor,
     /// Allow mouse events on this UI element.
     pub mouse_reactive: bool,
@@ -53,7 +57,7 @@ pub struct UiTransformBuilder {
     pub hidden: bool,
 }
 
-impl Default for UiTransformBuilder {
+/*impl Default for UiTransformBuilder {
     fn default() -> Self {
         UiTransformBuilder {
             id: "".to_string(),
@@ -71,7 +75,7 @@ impl Default for UiTransformBuilder {
             hidden: false,
         }
     }
-}
+}*/
 
 impl UiTransformBuilder {
     /// Set id
@@ -157,7 +161,6 @@ impl<'a> PrefabData<'a> for UiTransformBuilder {
             self.z,
             self.width,
             self.height,
-            self.tab_order,
         );
         if let Some(ref stretch) = self.stretch {
             transform = transform.with_stretch(stretch.clone());

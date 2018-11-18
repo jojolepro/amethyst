@@ -2,6 +2,7 @@
 use std::{hash::Hash, marker::PhantomData};
 
 use amethyst_core::{
+    nalgebra::Vector2,
     shrev::EventChannel,
     specs::prelude::{
         Component, Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write,
