@@ -1,16 +1,16 @@
-use amethyst_core::specs::WriteStorage;
-use std::marker::PhantomData;
+use amethyst_core::specs::Entities;
+use amethyst_core::specs::Entity;
+use amethyst_core::specs::Join;
 use amethyst_core::specs::System;
 use amethyst_core::specs::Write;
-use amethyst_core::specs::Entities;
-use amethyst_core::specs::Join;
+use amethyst_core::specs::WriteStorage;
 use hibitset::BitSet;
 use std::cmp::Ordering;
-use amethyst_core::specs::Entity;
+use std::marker::PhantomData;
 
 use amethyst_core::specs::ReadStorage;
 
-use {Selected, Selectable};
+use {Selectable, Selected};
 
 /// A cache sorted by tab order and then by Entity.
 /// Used to quickly find the next or previous selectable entities.
@@ -30,13 +30,25 @@ impl CachedSelectionOrder {
     //
     //
     /// Returns the index of the highest cached element (index in the cache!) that is currently selected.
-    pub fn highest_order_selected_index(&self, selected_storage: &WriteStorage<Selected>) -> Option<usize>{
-        self.cache.iter().enumerate().rev().find(|(_,(_, e))| selected_storage.get(*e).is_some()).map(|t| t.0)
+    pub fn highest_order_selected_index(
+        &self,
+        selected_storage: &WriteStorage<Selected>,
+    ) -> Option<usize> {
+        self.cache
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, (_, e))| selected_storage.get(*e).is_some())
+            .map(|t| t.0)
     }
 
     /// Returns the index in the cache for the specified entity.
     pub fn index_of(&self, entity: Entity) -> Option<usize> {
-        self.cache.iter().enumerate().find(|(_, (_, e))| *e == entity).map(|t| t.0)
+        self.cache
+            .iter()
+            .enumerate()
+            .find(|(_, (_, e))| *e == entity)
+            .map(|t| t.0)
     }
 }
 
@@ -46,17 +58,17 @@ pub struct CacheSelectionOrderSystem<G> {
     phantom: PhantomData<G>,
 }
 
-impl<'a, G> System<'a> for CacheSelectionOrderSystem<G> 
+impl<'a, G> System<'a> for CacheSelectionOrderSystem<G>
 where
-    G: PartialEq + Send + Sync + 'static
+    G: PartialEq + Send + Sync + 'static,
 {
-	type SystemData = (
-		Entities<'a>,
-		Write<'a, CachedSelectionOrder>,
-		ReadStorage<'a, Selectable<G>>,
-	);
-	fn run(&mut self, (entities, mut cache, selectables): Self::SystemData) {
-		{
+    type SystemData = (
+        Entities<'a>,
+        Write<'a, CachedSelectionOrder>,
+        ReadStorage<'a, Selectable<G>>,
+    );
+    fn run(&mut self, (entities, mut cache, selectables): Self::SystemData) {
+        {
             let mut rm = vec![];
             cache.cache.retain(|&(_t, entity)| {
                 let keep = selectables.contains(entity);
@@ -65,7 +77,10 @@ where
                 }
                 keep
             });
-            rm.iter().for_each(|e| {&mut cache.cached.remove(*e); ()});
+            rm.iter().for_each(|e| {
+                &mut cache.cached.remove(*e);
+                ()
+            });
         }
 
         for &mut (ref mut t, entity) in &mut cache.cache {
@@ -109,5 +124,5 @@ where
                 }
                 ret
             });
-	}
+    }
 }

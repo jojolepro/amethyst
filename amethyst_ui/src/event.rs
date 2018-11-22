@@ -1,4 +1,3 @@
-
 use std::{hash::Hash, marker::PhantomData};
 
 use amethyst_core::{

@@ -118,7 +118,7 @@ impl<G> UiTransformBuilder<G> {
     }
 }
 
-impl<'a, G> PrefabData<'a> for UiTransformBuilder<G> 
+impl<'a, G> PrefabData<'a> for UiTransformBuilder<G>
 where
     G: Send + Sync + 'static,
 {

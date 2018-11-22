@@ -3,18 +3,13 @@ use std::ops::Range;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
 use unicode_segmentation::UnicodeSegmentation;
-use winit::{
-    ElementState, Event, KeyboardInput, ModifiersState, VirtualKeyCode, WindowEvent,
-};
+use winit::{ElementState, Event, KeyboardInput, ModifiersState, VirtualKeyCode, WindowEvent};
 
 use amethyst_core::{
     shrev::{EventChannel, ReaderId},
-    specs::prelude::{
-        Join, Read, ReadStorage,
-        Resources, System, WriteStorage,
-    },
+    specs::prelude::{Join, Read, ReadStorage, Resources, System, WriteStorage},
 };
-use {UiText, TextEditing, Selected};
+use {Selected, TextEditing, UiText};
 
 /// System managing the keyboard inputs for the editable text fields.
 /// ## Features
@@ -29,9 +24,7 @@ pub struct TextEditingInputSystem {
 impl TextEditingInputSystem {
     /// Creates a new instance of this system
     pub fn new() -> Self {
-        Self {
-            reader: None,
-        }
+        Self { reader: None }
     }
 }
 
@@ -43,10 +36,7 @@ impl<'a> System<'a> for TextEditingInputSystem {
         Read<'a, EventChannel<Event>>,
     );
 
-    fn run(
-        &mut self,
-        (mut texts, mut editables, selecteds, events,): Self::SystemData,
-){
+    fn run(&mut self, (mut texts, mut editables, selecteds, events): Self::SystemData) {
         for text in (&mut texts).join() {
             if (*text.text).chars().any(is_combining_mark) {
                 let normalized = text.text.nfd().collect::<String>();
@@ -60,7 +50,9 @@ impl<'a> System<'a> for TextEditingInputSystem {
                 .expect("`UiKeyboardSystem::setup` was not called before `UiKeyboardSystem::run`"),
         ) {
             // Process events for the focused text element
-            if let Some((ref mut focused_text, ref mut focused_edit, _)) = (&mut texts, &mut editables, &selecteds).join().next() {
+            if let Some((ref mut focused_text, ref mut focused_edit, _)) =
+                (&mut texts, &mut editables, &selecteds).join().next()
+            {
                 match *event {
                     Event::WindowEvent {
                         event: WindowEvent::ReceivedCharacter(input),

@@ -2,15 +2,13 @@
 
 use gfx_glyph::{Point, PositionedGlyph};
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
-use winit::{
-    ElementState, Event, MouseButton, WindowEvent,
-};
+use winit::{ElementState, Event, MouseButton, WindowEvent};
 
 use amethyst_core::{
     shrev::{EventChannel, ReaderId},
     specs::prelude::{
-        Component, DenseVecStorage, Join, Read, ReadExpect, ReadStorage,
-        Resources, System, WriteStorage,
+        Component, DenseVecStorage, Join, Read, ReadExpect, ReadStorage, Resources, System,
+        WriteStorage,
     },
     timing::Time,
 };
@@ -171,15 +169,14 @@ impl<'a> System<'a> for TextEditingMouseSystem {
         &mut self,
         (mut texts, mut text_editings, selecteds, events, screen_dimensions, time): Self::SystemData,
 ){
-    	// Normalize text to ensure we can properly count the characters.
-    	// TODO: Possible improvement to be made if this can be moved only when inserting characters into ui text.
+        // Normalize text to ensure we can properly count the characters.
+        // TODO: Possible improvement to be made if this can be moved only when inserting characters into ui text.
         for text in (&mut texts).join() {
             if (*text.text).chars().any(is_combining_mark) {
                 let normalized = text.text.nfd().collect::<String>();
                 text.text = normalized;
             }
         }
-
 
         // TODO: Finish TextEditingCursorSystem and remove this
         {
@@ -188,28 +185,29 @@ impl<'a> System<'a> for TextEditingMouseSystem {
                 if text_editing.cursor_blink_timer >= 0.5 {
                     text_editing.cursor_blink_timer = 0.0;
                 }
-	        }
+            }
         }
 
         // Process only if an editable text is selected.
-        if let Some((ref mut text, ref mut text_editing, _)) = (&mut texts, &mut text_editings, &selecteds).join().next(){
-	        for event in events.read(
-	            self.reader
-	                .as_mut()
-	                .expect("`UiKeyboardSystem::setup` was not called before `UiKeyboardSystem::run`"),
-	        ) {
-	            // Process events for the whole UI.
-	            match *event {
-	                Event::WindowEvent {
-	                    event: WindowEvent::CursorMoved { position, .. },
-	                    ..
-	                } => {
-	                    let hidpi = screen_dimensions.hidpi_factor() as f32;
-	                    self.mouse_position = (
-	                        position.x as f32 * hidpi,
-	                        (screen_dimensions.height() - position.y as f32) * hidpi,
-	                    );
-	                    if self.left_mouse_button_pressed {
+        if let Some((ref mut text, ref mut text_editing, _)) =
+            (&mut texts, &mut text_editings, &selecteds).join().next()
+        {
+            for event in
+                events.read(self.reader.as_mut().expect(
+                    "`UiKeyboardSystem::setup` was not called before `UiKeyboardSystem::run`",
+                )) {
+                // Process events for the whole UI.
+                match *event {
+                    Event::WindowEvent {
+                        event: WindowEvent::CursorMoved { position, .. },
+                        ..
+                    } => {
+                        let hidpi = screen_dimensions.hidpi_factor() as f32;
+                        self.mouse_position = (
+                            position.x as f32 * hidpi,
+                            (screen_dimensions.height() - position.y as f32) * hidpi,
+                        );
+                        if self.left_mouse_button_pressed {
                             let (mouse_x, mouse_y) = self.mouse_position;
                             text_editing.highlight_vector = closest_glyph_index_to_mouse(
                                 mouse_x,
@@ -223,23 +221,23 @@ impl<'a> System<'a> for TextEditingMouseSystem {
                             if should_advance_to_end(mouse_x, text_editing, text) {
                                 text_editing.highlight_vector += 1;
                             }
-	                    }
-	                }
-	                Event::WindowEvent {
-	                    event:
-	                        WindowEvent::MouseInput {
-	                            button: MouseButton::Left,
-	                            state,
-	                            ..
-	                        },
-	                    ..
-	                } => {
-	                    match state {
-	                        ElementState::Pressed => {
-	                            self.left_mouse_button_pressed = true;
+                        }
+                    }
+                    Event::WindowEvent {
+                        event:
+                            WindowEvent::MouseInput {
+                                button: MouseButton::Left,
+                                state,
+                                ..
+                            },
+                        ..
+                    } => {
+                        match state {
+                            ElementState::Pressed => {
+                                self.left_mouse_button_pressed = true;
 
-	                            // If we focused an editable text field be sure to position the cursor
-	                            // in it.
+                                // If we focused an editable text field be sure to position the cursor
+                                // in it.
                                 let (mouse_x, mouse_y) = self.mouse_position;
                                 text_editing.highlight_vector = 0;
                                 text_editing.cursor_position = closest_glyph_index_to_mouse(
@@ -255,16 +253,16 @@ impl<'a> System<'a> for TextEditingMouseSystem {
                                 if should_advance_to_end(mouse_x, text_editing, text) {
                                     text_editing.cursor_position += 1;
                                 }
-	                        }
-	                        ElementState::Released => {
-	                            self.left_mouse_button_pressed = false;
-	                        }
-	                    }
-	                }
-	                _ => {}
-	            }
-	        }
-    	}
+                            }
+                            ElementState::Released => {
+                                self.left_mouse_button_pressed = false;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
     }
 
     fn setup(&mut self, res: &mut Resources) {
@@ -274,11 +272,7 @@ impl<'a> System<'a> for TextEditingMouseSystem {
     }
 }
 
-fn should_advance_to_end(
-    mouse_x: f32,
-    text_editing: &mut TextEditing,
-    text: &mut UiText,
-) -> bool {
+fn should_advance_to_end(mouse_x: f32, text_editing: &mut TextEditing, text: &mut UiText) -> bool {
     let cursor_pos = text_editing.cursor_position + text_editing.highlight_vector;
     let len = text.cached_glyphs.len() as isize;
     if cursor_pos + 1 == len {
@@ -308,4 +302,3 @@ where
         }).map(|(i, _)| i)
         .unwrap_or(0) as isize
 }
-

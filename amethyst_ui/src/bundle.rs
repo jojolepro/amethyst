@@ -55,7 +55,7 @@ where
         builder.add(
             SelectionMouseSystem::<G, A, B>::new(),
             "ui_mouse_selection",
-            &[]
+            &[],
         );
         builder.add(
             SelectionKeyboardSystem::<G>::new(),
@@ -92,12 +92,8 @@ where
         );
 
         // Required for text editing.
-        builder.add(
-            BlinkSystem,
-            "blink_system",
-            &[],
-        );
-        
+        builder.add(BlinkSystem, "blink_system", &[]);
+
         Ok(())
     }
 }

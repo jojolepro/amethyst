@@ -47,12 +47,11 @@ mod layout;
 mod pass;
 mod prefab;
 mod resize;
+mod selection;
+mod selection_order_cache;
 mod text;
 mod text_editing;
 mod transform;
-mod selection;
-mod selection_order_cache;
-
 
 pub use self::{
     action_components::{OnUiActionImage, OnUiActionSound},
@@ -72,8 +71,8 @@ pub use self::{
         UiPrefab, UiTextBuilder, UiTransformBuilder, UiWidget,
     },
     resize::{ResizeSystem, UiResize},
-    selection::{Selected, Selectable, SelectionKeyboardSystem, SelectionMouseSystem},
-    selection_order_cache::{CachedSelectionOrder, CacheSelectionOrderSystem},
+    selection::{Selectable, Selected, SelectionKeyboardSystem, SelectionMouseSystem},
+    selection_order_cache::{CacheSelectionOrderSystem, CachedSelectionOrder},
     text::{LineMode, TextEditing, TextEditingMouseSystem, UiText},
     text_editing::TextEditingInputSystem,
     transform::{UiFinder, UiTransform},

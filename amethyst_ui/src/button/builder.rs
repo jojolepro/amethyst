@@ -10,7 +10,7 @@ use amethyst_renderer::{Texture, TextureHandle};
 
 use {
     font::default::get_default_font, Anchor, FontAsset, FontHandle, Interactable, OnUiActionImage,
-    OnUiActionSound, Stretch, UiButton, UiImage, UiText, UiTransform, Selectable,
+    OnUiActionSound, Selectable, Stretch, UiButton, UiImage, UiText, UiTransform,
 };
 
 use std::marker::PhantomData;
@@ -98,7 +98,7 @@ impl<G> Default for UiButtonBuilder<G> {
     }
 }
 
-impl<G: PartialEq+Send+Sync+'static> UiButtonBuilder<G> {
+impl<G: PartialEq + Send + Sync + 'static> UiButtonBuilder<G> {
     /// Construct a new UiButtonBuilder.
     /// This allows easy use of default values for text and button appearance and allows the user
     /// to easily set other UI-related options.
@@ -252,7 +252,8 @@ impl<G: PartialEq+Send+Sync+'static> UiButtonBuilder<G> {
                     self.height,
                 ).with_stretch(self.stretch),
             ).expect("Unreachable: Inserting newly created entity");
-        res.selectables.insert(image_entity, Selectable::<G>::new(self.tab_order))
+        res.selectables
+            .insert(image_entity, Selectable::<G>::new(self.tab_order))
             .expect("Unreachable: Inserting newly created entity");
         let image_handle = self.image.unwrap_or_else(|| {
             res.loader
