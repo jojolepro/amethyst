@@ -41,7 +41,6 @@ mod action_components;
 mod bundle;
 mod button;
 mod event;
-mod focused;
 mod font;
 mod format;
 mod image;
@@ -61,7 +60,6 @@ pub use self::{
     bundle::UiBundle,
     button::{UiButton, UiButtonBuilder, UiButtonBuilderResources, UiButtonSystem},
     event::{Interactable, UiEvent, UiEventType, UiMouseSystem},
-    focused::UiFocused,
     font::{
         default::get_default_font,
         systemfont::{default_system_font, get_all_font_handles, list_system_font_families},
@@ -75,7 +73,7 @@ pub use self::{
         UiPrefab, UiTextBuilder, UiTransformBuilder, UiWidget,
     },
     resize::{ResizeSystem, UiResize},
-    selection::{Selected, Selectable, SelectionKeyboardSystem},
+    selection::{Selected, Selectable, SelectionKeyboardSystem, SelectionMouseSystem},
     selection_order_cache::{CachedSelectionOrder, CacheSelectionOrderSystem},
     text::{LineMode, TextEditing, TextEditingMouseSystem, UiText},
     text_editing::TextEditingInputSystem,

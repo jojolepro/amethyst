@@ -8,7 +8,7 @@ use amethyst_assets::{
 use amethyst_audio::{AudioFormat, Source as Audio};
 use amethyst_core::specs::{
     error::BoxedErr,
-    prelude::{Entities, Entity, Read, ReadExpect, Write, WriteStorage},
+    prelude::{Entities, Entity, Read, ReadExpect, WriteStorage},
 };
 use amethyst_renderer::{HiddenPropagate, Texture, TextureFormat, TextureMetadata, TexturePrefab};
 

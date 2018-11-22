@@ -53,19 +53,26 @@ where
             &[],
         );
         builder.add(
-            SelectionKeyboardSystem::<G, A, B>::new(),
-            "ui_selection",
-            &[],
+            SelectionMouseSystem::<G, A, B>::new(),
+            "ui_mouse_selection",
+            &[]
+        );
+        builder.add(
+            SelectionKeyboardSystem::<G>::new(),
+            "ui_keyboard_selection",
+            // Because when you press tab, you want to override the previously selected elements.
+            &["ui_mouse_selection"],
         );
         builder.add(
             TextEditingMouseSystem::new(),
             "ui_text_editing_mouse_system",
-            &["ui_selection"],
+            &["ui_mouse_selection", "ui_keyboard_selection"],
         );
         builder.add(
             TextEditingInputSystem::new(),
             "ui_text_editing_input_system",
-            &["ui_selection"],
+            // Hard requirement. The system assumes the text to edit is selected.
+            &["ui_mouse_selection", "ui_keyboard_selection"],
         );
         builder.add(ResizeSystem::new(), "ui_resize_system", &[]);
         builder.add(

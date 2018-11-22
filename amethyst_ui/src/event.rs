@@ -32,9 +32,15 @@ pub enum UiEventType {
     /// When the cursor stops being over an element.
     HoverStop,
     /// When dragging a `Draggable` Ui element.
-    Dragging {element_offset: Vector2<f32>},
+    Dragging {
+        /// The position of the mouse relative to the center of the transform when the drag started.
+        element_offset: Vector2<f32>,
+    },
     /// When stopping to drag a `Draggable` Ui element.
-    Dropped {dropped_on: Entity},
+    Dropped {
+        /// The entity on which the dragged object was dropped.
+        dropped_on: Entity,
+    },
 }
 
 /// A ui event instance.

@@ -12,25 +12,35 @@ use amethyst_core::specs::ReadStorage;
 
 use {Selected, Selectable};
 
-/// A cache sorted by tab order, and then by Entity.
+/// A cache sorted by tab order and then by Entity.
+/// Used to quickly find the next or previous selectable entities.
 #[derive(Debug, Clone, Default)]
 pub struct CachedSelectionOrder {
+    /// The cached bitset.
     pub cached: BitSet,
+    /// The cache holding the z position and the corresponding entity.
     pub cache: Vec<(u32, Entity)>,
 }
 
 impl CachedSelectionOrder {
-    // TODO: Change WriteStorage to ReadStorage
+    // TODO: Change WriteStorage to ReadStorage. @torkleyy
+    //
+    //
+    //
+    //
+    //
     /// Returns the index of the highest cached element (index in the cache!) that is currently selected.
     pub fn highest_order_selected_index(&self, selected_storage: &WriteStorage<Selected>) -> Option<usize>{
         self.cache.iter().enumerate().rev().find(|(_,(_, e))| selected_storage.get(*e).is_some()).map(|t| t.0)
     }
 
+    /// Returns the index in the cache for the specified entity.
     pub fn index_of(&self, entity: Entity) -> Option<usize> {
         self.cache.iter().enumerate().find(|(_, (_, e))| *e == entity).map(|t| t.0)
     }
 }
 
+/// System in charge of updating the CachedSelectionOrder resource on each frame.
 #[derive(Debug, Default, new)]
 pub struct CacheSelectionOrderSystem<G> {
     phantom: PhantomData<G>,

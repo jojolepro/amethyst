@@ -1,25 +1,26 @@
-use std::{cmp::Ordering, ops::Range, marker::PhantomData};
+use std::ops::Range;
 
 use clipboard::{ClipboardContext, ClipboardProvider};
-use gfx_glyph::{Point, PositionedGlyph};
-use hibitset::BitSet;
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
 use unicode_segmentation::UnicodeSegmentation;
 use winit::{
-    ElementState, Event, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode, WindowEvent,
+    ElementState, Event, KeyboardInput, ModifiersState, VirtualKeyCode, WindowEvent,
 };
 
 use amethyst_core::{
     shrev::{EventChannel, ReaderId},
     specs::prelude::{
-        Component, DenseVecStorage, Entities, Join, Read, ReadExpect, ReadStorage,
-        Resources, System, Write, WriteStorage,
+        Join, Read, ReadStorage,
+        Resources, System, WriteStorage,
     },
-    timing::Time,
 };
-use amethyst_renderer::ScreenDimensions;
 use {UiText, TextEditing, Selected};
 
+/// System managing the keyboard inputs for the editable text fields.
+/// ## Features
+/// * Adds and removes text.
+/// * Moves selection cursor.
+/// * Grows and shrinks selected text zone.
 pub struct TextEditingInputSystem {
     /// A reader for winit events.
     reader: Option<ReaderId<Event>>,

@@ -105,13 +105,13 @@ impl<'a> PassData<'a> for DrawUi {
         ReadExpect<'a, ScreenDimensions>,
         Read<'a, AssetStorage<Texture>>,
         Read<'a, AssetStorage<FontAsset>>,
-        Read<'a, UiFocused>,
         ReadStorage<'a, UiImage>,
         ReadStorage<'a, UiTransform>,
         WriteStorage<'a, UiText>,
         ReadStorage<'a, TextEditing>,
         ReadStorage<'a, Hidden>,
         ReadStorage<'a, HiddenPropagate>,
+        ReadStorage<'a, Selected>,
     );
 }
 
@@ -147,13 +147,13 @@ impl Pass for DrawUi {
             screen_dimensions,
             tex_storage,
             font_storage,
-            focused,
             ui_image,
             ui_transform,
             mut ui_text,
             editing,
             hidden,
             hidden_prop,
+            selecteds,
         ): <Self as PassData>::Data,
     ) {
         // Populate and update the draw order cache.
@@ -400,7 +400,7 @@ impl Pass for DrawUi {
                         .cursor_position
                         .max(ed.cursor_position + ed.highlight_vector)
                         as usize;
-                    let color = if focused.entity == Some(entity) {
+                    let color = if selecteds.contains(entity) {
                         ed.selected_background_color
                     } else {
                         [
@@ -466,7 +466,7 @@ impl Pass for DrawUi {
                     error!("Unable to draw text! Error: {:?}", err);
                 }
                 // Render cursor
-                if focused.entity == Some(entity) {
+                if selecteds.contains(entity) {
                     if let Some((texture, editing)) = editing.as_ref().and_then(|ed| {
                         tex_storage
                             .get(&cached_color_texture(

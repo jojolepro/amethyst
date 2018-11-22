@@ -252,7 +252,8 @@ impl<G: PartialEq+Send+Sync+'static> UiButtonBuilder<G> {
                     self.height,
                 ).with_stretch(self.stretch),
             ).expect("Unreachable: Inserting newly created entity");
-        res.selectables.insert(image_entity, Selectable::<G>::new(self.tab_order));
+        res.selectables.insert(image_entity, Selectable::<G>::new(self.tab_order))
+            .expect("Unreachable: Inserting newly created entity");
         let image_handle = self.image.unwrap_or_else(|| {
             res.loader
                 .load_from_data(DEFAULT_BKGD_COLOR.into(), (), &res.texture_asset)

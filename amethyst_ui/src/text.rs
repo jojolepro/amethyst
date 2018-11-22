@@ -1,19 +1,16 @@
-use std::{cmp::Ordering, ops::Range, marker::PhantomData};
+//! Module holding the components related to text and text editing.
 
-use clipboard::{ClipboardContext, ClipboardProvider};
 use gfx_glyph::{Point, PositionedGlyph};
-use hibitset::BitSet;
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
-use unicode_segmentation::UnicodeSegmentation;
 use winit::{
-    ElementState, Event, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode, WindowEvent,
+    ElementState, Event, MouseButton, WindowEvent,
 };
 
 use amethyst_core::{
     shrev::{EventChannel, ReaderId},
     specs::prelude::{
-        Component, DenseVecStorage, Entities, Join, Read, ReadExpect, ReadStorage,
-        Resources, System, Write, WriteStorage,
+        Component, DenseVecStorage, Join, Read, ReadExpect, ReadStorage,
+        Resources, System, WriteStorage,
     },
     timing::Time,
 };
@@ -140,7 +137,6 @@ impl Component for TextEditing {
 }
 
 /// This system processes the underlying UI data as needed.
-/// TODO: Run after SelectionSystem
 pub struct TextEditingMouseSystem {
     /// A reader for winit events.
     reader: Option<ReaderId<Event>>,
@@ -185,9 +181,9 @@ impl<'a> System<'a> for TextEditingMouseSystem {
         }
 
 
-        // TODO: Finish TextEditingCursorSystem
+        // TODO: Finish TextEditingCursorSystem and remove this
         {
-            if let Some((mut text_editing, _)) = (&mut text_editings, &selecteds).join().next() {
+            if let Some((text_editing, _)) = (&mut text_editings, &selecteds).join().next() {
                 text_editing.cursor_blink_timer += time.delta_real_seconds();
                 if text_editing.cursor_blink_timer >= 0.5 {
                     text_editing.cursor_blink_timer = 0.0;
