@@ -61,7 +61,7 @@ impl Component for Selected {
 /// Reacts to `UiEvent`.
 /// Reacts to Tab and Shift+Tab.
 #[derive(Debug, Default, new)]
-pub struct SelectionSystem<G, AX, AC> {
+pub struct SelectionKeyboardSystem<G, AX, AC> {
 	#[new(default)]
 	ui_reader_id: Option<ReaderId<UiEvent>>,
 	#[new(default)]
@@ -69,7 +69,7 @@ pub struct SelectionSystem<G, AX, AC> {
 	phantom: PhantomData<(G, AX, AC)>,
 }
 
-impl<'a, G, AX, AC> System<'a> for SelectionSystem<G, AX, AC> 
+impl<'a, G, AX, AC> System<'a> for SelectionKeyboardSystem<G, AX, AC> 
 where
 	G: Send + Sync + 'static + PartialEq,
 	AX: Hash + Eq + Clone + Send + Sync + 'static,
@@ -102,7 +102,7 @@ where
 				add replace
 		*/
 
-
+		// TODO: Move to SelectionMouseSystem
 		let mut clicked_buf = vec![]; // Last = last selected
 		let mut shift = input_handler.key_is_down(VirtualKeyCode::LShift) || input_handler.key_is_down(VirtualKeyCode::RShift);
 		let mut ctrl = input_handler.key_is_down(VirtualKeyCode::LControl) || input_handler.key_is_down(VirtualKeyCode::RControl);
@@ -157,8 +157,13 @@ where
 
 	                	let target = if !shift {
 	                		// Up
-	                		cached.cache.get(highest - 1).unwrap_or(cached.cache.last()
+	                		if highest > 0 {
+	                			cached.cache.get(highest - 1).unwrap_or(cached.cache.last()
 	                			.expect("unreachable: A highest ui element was selected, but none exist in the cache."))
+	                		} else {
+	                			cached.cache.last()
+	                			.expect("unreachable: A highest ui element was selected, but none exist in the cache.")
+	                		}
 	                	} else {
 	                		// Down
 	                		cached.cache.get(highest + 1).unwrap_or(cached.cache.first()

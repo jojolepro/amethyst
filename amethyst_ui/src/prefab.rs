@@ -19,7 +19,7 @@ use super::*;
 #[derive(Debug, Clone, Deserialize, Serialize, Derivative)]
 #[serde(default)]
 #[derivative(Default)]
-pub struct UiTransformBuilder {
+pub struct UiTransformBuilder<G> {
     /// An identifier. Serves no purpose other than to help you distinguish between UI elements.
     pub id: String,
     /// X coordinate
@@ -33,11 +33,6 @@ pub struct UiTransformBuilder {
     pub width: f32,
     /// The height of this UI element.
     pub height: f32,
-    /// The UI element tab order.  When the player presses tab the UI focus will shift to the
-    /// UI element with the next highest tab order, or if another element with the same tab_order
-    /// as this one exists they are ordered according to Entity creation order.  Shift-tab walks
-    /// this ordering backwards.
-    pub tab_order: i32,
     /// Indicates if actions on the ui can go through this element.
     /// If set to false, the element will behaves as if it was transparent and will let events go to
     /// the next element (for example, the text on a button).
@@ -55,29 +50,19 @@ pub struct UiTransformBuilder {
     pub mouse_reactive: bool,
     /// Hides an entity by adding a [`HiddenPropagate`](../amethyst_renderer/struct.HiddenPropagate.html) component
     pub hidden: bool,
+    /// Makes the UiTransform selectable through keyboard inputs, mouse inputs and other means.
+    /// # Ordering
+    /// The UI element tab order.  When the player presses tab the UI focus will shift to the
+    /// UI element with the next highest tab order, or if another element with the same tab_order
+    /// as this one exists they are ordered according to Entity creation order.  Shift-tab walks
+    /// this ordering backwards.
+    // TODO: Make full prefab for Selectable.
+    pub selectable: Option<u32>,
+    #[serde(skip)]
+    _phantom: PhantomData<G>,
 }
 
-/*impl Default for UiTransformBuilder {
-    fn default() -> Self {
-        UiTransformBuilder {
-            id: "".to_string(),
-            x: 0.,
-            y: 0.,
-            z: 1.,
-            width: 0.,
-            height: 0.,
-            tab_order: 0,
-            opaque: true,
-            percent: false,
-            stretch: None,
-            anchor: Anchor::Middle,
-            mouse_reactive: false,
-            hidden: false,
-        }
-    }
-}*/
-
-impl UiTransformBuilder {
+impl<G> UiTransformBuilder<G> {
     /// Set id
     pub fn with_id<S>(mut self, id: S) -> Self
     where
@@ -99,12 +84,6 @@ impl UiTransformBuilder {
     pub fn with_size(mut self, width: f32, height: f32) -> Self {
         self.width = width;
         self.height = height;
-        self
-    }
-
-    /// Set tab order
-    pub fn with_tab_order(mut self, tab_order: i32) -> Self {
-        self.tab_order = tab_order;
         self
     }
 
@@ -139,11 +118,15 @@ impl UiTransformBuilder {
     }
 }
 
-impl<'a> PrefabData<'a> for UiTransformBuilder {
+impl<'a, G> PrefabData<'a> for UiTransformBuilder<G> 
+where
+    G: Send + Sync + 'static,
+{
     type SystemData = (
         WriteStorage<'a, UiTransform>,
         WriteStorage<'a, Interactable>,
         WriteStorage<'a, HiddenPropagate>,
+        WriteStorage<'a, Selectable<G>>,
     );
     type Result = ();
 
@@ -180,6 +163,10 @@ impl<'a> PrefabData<'a> for UiTransformBuilder {
             system_data.2.insert(entity, HiddenPropagate)?;
         }
 
+        if let Some(u) = self.selectable {
+            system_data.3.insert(entity, Selectable::<G>::new(u))?;
+        }
+
         Ok(())
     }
 }
@@ -189,6 +176,7 @@ impl<'a> PrefabData<'a> for UiTransformBuilder {
 /// ### Type parameters:
 ///
 /// - `F`: `Format` used for loading `FontAsset`
+/// - `G`: Selection Group Type
 #[derive(Deserialize, Serialize, Clone)]
 pub struct UiTextBuilder<F = FontFormat>
 where
@@ -226,8 +214,6 @@ pub struct TextEditingPrefab {
     pub selected_background_color: [f32; 4],
     /// Use block cursor instead of line cursor
     pub use_block_cursor: bool,
-    /// Set this text field as focused
-    pub focused: bool,
 }
 
 impl Default for TextEditingPrefab {
@@ -237,7 +223,6 @@ impl Default for TextEditingPrefab {
             selected_text_color: [0., 0., 0., 1.],
             selected_background_color: [1., 1., 1., 1.],
             use_block_cursor: false,
-            focused: false,
         }
     }
 }
@@ -250,7 +235,6 @@ where
         WriteStorage<'a, UiText>,
         WriteStorage<'a, TextEditing>,
         <AssetPrefab<FontAsset, F> as PrefabData<'a>>::SystemData,
-        Write<'a, UiFocused>,
     );
     type Result = ();
 
@@ -260,7 +244,7 @@ where
         system_data: &mut Self::SystemData,
         _: &[Entity],
     ) -> Result<(), PrefabError> {
-        let (ref mut texts, ref mut editables, ref mut fonts, ref mut focused) = system_data;
+        let (ref mut texts, ref mut editables, ref mut fonts) = system_data;
         let font_handle = self
             .font
             .as_ref()
@@ -288,9 +272,6 @@ where
                     editing.use_block_cursor,
                 ),
             )?;
-            if editing.focused {
-                focused.entity = Some(entity);
-            }
         }
         Ok(())
     }
@@ -300,7 +281,7 @@ where
         progress: &mut ProgressCounter,
         system_data: &mut Self::SystemData,
     ) -> Result<bool, PrefabError> {
-        let (_, _, ref mut fonts, _) = system_data;
+        let (_, _, ref mut fonts) = system_data;
 
         self.font
             .get_or_insert_with(|| {
@@ -488,7 +469,7 @@ where
 /// - `I`: `Format` used for loading `Texture`s
 /// - `F`: `Format` used for loading `FontAsset`
 #[derive(Serialize, Deserialize, Clone)]
-pub enum UiWidget<A = AudioFormat, I = TextureFormat, F = FontFormat, C = NoCustomUi>
+pub enum UiWidget<A = AudioFormat, I = TextureFormat, F = FontFormat, C = NoCustomUi, G = ()>
 where
     A: Format<Audio, Options = ()>,
     I: Format<Texture, Options = TextureMetadata>,
@@ -498,7 +479,7 @@ where
     /// Container component
     Container {
         /// Spatial information for the container
-        transform: UiTransformBuilder,
+        transform: UiTransformBuilder<G>,
         /// Background image
         #[serde(default = "default_container_image")]
         background: Option<UiImageBuilder<I>>,
@@ -508,21 +489,21 @@ where
     /// Image component
     Image {
         /// Spatial information
-        transform: UiTransformBuilder,
+        transform: UiTransformBuilder<G>,
         /// Image
         image: UiImageBuilder<I>,
     },
     /// Text component
     Text {
         /// Spatial information
-        transform: UiTransformBuilder,
+        transform: UiTransformBuilder<G>,
         /// Text
         text: UiTextBuilder<F>,
     },
     /// Button component
     Button {
         /// Spatial information
-        transform: UiTransformBuilder,
+        transform: UiTransformBuilder<G>,
         /// Button
         button: UiButtonBuilder<A, I, F>,
     },
@@ -530,7 +511,7 @@ where
     Custom(Box<C>),
 }
 
-impl<A, I, F, C> UiWidget<A, I, F, C>
+impl<A, I, F, C, G> UiWidget<A, I, F, C, G>
 where
     A: Format<Audio, Options = ()>,
     I: Format<Texture, Options = TextureMetadata>,
@@ -538,7 +519,7 @@ where
     C: ToNativeWidget<A, I, F>,
 {
     /// Convenience function to access widgets `UiTransformBuilder`
-    pub fn transform(&self) -> Option<&UiTransformBuilder> {
+    pub fn transform(&self) -> Option<&UiTransformBuilder<G>> {
         match self {
             UiWidget::Container { ref transform, .. } => Some(transform),
             UiWidget::Image { ref transform, .. } => Some(transform),
@@ -549,7 +530,7 @@ where
     }
 
     /// Convenience function to access widgets `UiTransformBuilder`
-    pub fn transform_mut(&mut self) -> Option<&mut UiTransformBuilder> {
+    pub fn transform_mut(&mut self) -> Option<&mut UiTransformBuilder<G>> {
         match self {
             UiWidget::Container {
                 ref mut transform, ..
@@ -640,8 +621,9 @@ type UiPrefabData<
     I = TextureFormat,
     F = FontFormat,
     D = <NoCustomUi as ToNativeWidget>::PrefabData,
+    G = (),
 > = (
-    Option<UiTransformBuilder>,
+    Option<UiTransformBuilder<G>>,
     Option<UiImageBuilder<I>>,
     Option<UiTextBuilder<F>>,
     Option<UiButtonBuilder<A, I, F>>,
@@ -904,12 +886,11 @@ where
 /// - `CD`: prefab data from custom UI, see `ToNativeWidget::PrefabData`
 pub type UiLoaderSystem<A, I, F, CD> = PrefabLoaderSystem<UiPrefabData<A, I, F, CD>>;
 
-fn button_text_transform(mut id: String) -> UiTransformBuilder {
+fn button_text_transform<G>(mut id: String) -> UiTransformBuilder<G> {
     id.push_str("_btn_txt");
     UiTransformBuilder::default()
         .with_id(id)
         .with_position(0., 0., 1.)
-        .with_tab_order(10)
         .with_anchor(Anchor::Middle)
         .with_stretch(Stretch::XY {
             x_margin: 0.,

@@ -8,7 +8,7 @@ use amethyst_core::{
     bundle::{Result, SystemBundle},
     specs::prelude::DispatcherBuilder,
 };
-use amethyst_renderer::TextureFormat;
+use amethyst_renderer::{BlinkSystem, TextureFormat};
 
 use super::*;
 
@@ -53,14 +53,19 @@ where
             &[],
         );
         builder.add(
-            UiKeyboardSystem::<G>::new(),
-            "ui_keyboard_system",
-            &["font_processor"],
-        );
-        builder.add(
-            SelectionSystem::<G, A, B>::new(),
+            SelectionKeyboardSystem::<G, A, B>::new(),
             "ui_selection",
             &[],
+        );
+        builder.add(
+            TextEditingMouseSystem::new(),
+            "ui_text_editing_mouse_system",
+            &["ui_selection"],
+        );
+        builder.add(
+            TextEditingInputSystem::new(),
+            "ui_text_editing_input_system",
+            &["ui_selection"],
         );
         builder.add(ResizeSystem::new(), "ui_resize_system", &[]);
         builder.add(
@@ -78,6 +83,14 @@ where
             "ui_button_system",
             &["ui_mouse_system"],
         );
+
+        // Required for text editing.
+        builder.add(
+            BlinkSystem,
+            "blink_system",
+            &[],
+        );
+        
         Ok(())
     }
 }

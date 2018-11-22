@@ -50,6 +50,7 @@ mod pass;
 mod prefab;
 mod resize;
 mod text;
+mod text_editing;
 mod transform;
 mod selection;
 mod selection_order_cache;
@@ -74,9 +75,10 @@ pub use self::{
         UiPrefab, UiTextBuilder, UiTransformBuilder, UiWidget,
     },
     resize::{ResizeSystem, UiResize},
-    selection::*,
+    selection::{Selected, Selectable, SelectionKeyboardSystem},
     selection_order_cache::{CachedSelectionOrder, CacheSelectionOrderSystem},
-    text::{LineMode, TextEditing, UiKeyboardSystem, UiText},
+    text::{LineMode, TextEditing, TextEditingMouseSystem, UiText},
+    text_editing::TextEditingInputSystem,
     transform::{UiFinder, UiTransform},
 };
 

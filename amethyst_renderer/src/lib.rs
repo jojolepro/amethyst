@@ -87,6 +87,7 @@ extern crate gfx_device_vulkan;
 extern crate gfx_window_vulkan;
 
 pub use {
+    blink::{Blink, BlinkSystem},
     bundle::RenderBundle,
     cam::{ActiveCamera, ActiveCameraPrefab, Camera, CameraPrefab, Projection},
     color::Rgba,
@@ -150,6 +151,7 @@ pub mod pipe;
 #[macro_use]
 mod macros;
 
+mod blink;
 mod bundle;
 mod cam;
 mod color;
