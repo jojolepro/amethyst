@@ -18,7 +18,7 @@
 //!
 //! This is where, for a `DrawX` pass, you will find a corresponding `DrawXSeparate` pass which
 //! supports vertex skinning and joint transformations to improve the render. An exception to this
-//! is the `DrawSprite` pass, which does not support joint transformations.
+//! is the `DrawFlat2D` pass, which does not support joint transformations.
 //!
 //! [am]: https://www.amethyst.rs/
 //! [gh]: https://github.com/amethyst/amethyst/tree/master/src/renderer
@@ -42,7 +42,6 @@ extern crate gfx;
 extern crate gfx_core;
 #[macro_use]
 extern crate gfx_macros;
-#[macro_use]
 extern crate glsl_layout;
 extern crate hetseq;
 extern crate hibitset;
@@ -108,8 +107,8 @@ pub use {
     mesh::{vertex_data, Mesh, MeshBuilder, MeshHandle, VertexBuffer},
     mtl::{Material, MaterialDefaults, TextureOffset},
     pass::{
-        get_camera, set_vertex_args, DebugLinesParams, DrawDebugLines, DrawFlat, DrawFlatSeparate,
-        DrawPbm, DrawPbmSeparate, DrawShaded, DrawShadedSeparate, DrawSkybox, DrawSprite,
+        get_camera, set_vertex_args, DebugLinesParams, DrawDebugLines, DrawFlat, DrawFlat2D,
+        DrawFlatSeparate, DrawPbm, DrawPbmSeparate, DrawShaded, DrawShadedSeparate, DrawSkybox,
         SkyboxColor,
     },
     pipe::{
@@ -125,7 +124,8 @@ pub use {
         JointTransformsPrefab, JointWeights,
     },
     sprite::{
-        Sprite, SpriteRender, SpriteSheet, SpriteSheetFormat, SpriteSheetHandle, TextureCoordinates,
+        Flipped, Sprite, SpriteRender, SpriteSheet, SpriteSheetFormat, SpriteSheetHandle,
+        TextureCoordinates,
     },
     sprite_visibility::{SpriteVisibility, SpriteVisibilitySortingSystem},
     system::RenderSystem,

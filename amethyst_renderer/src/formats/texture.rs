@@ -364,6 +364,7 @@ impl SimpleFormat<Texture> for BmpFormat {
 }
 
 /// Allows loading of TGA files.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TgaFormat;
 
 impl TgaFormat {
@@ -451,11 +452,17 @@ where
     D: AsRef<[T]>,
     T: Pod + Copy,
 {
-    tb.with_sampler(metadata.sampler)
+    let builder = tb
+        .with_sampler(metadata.sampler)
         .mip_levels(metadata.mip_levels)
         .dynamic(metadata.dynamic)
         .with_format(metadata.format)
-        .with_channel_type(metadata.channel)
+        .with_channel_type(metadata.channel);
+    if let Some((x, y)) = metadata.size {
+        builder.with_size(x, y)
+    } else {
+        builder
+    }
 }
 
 fn create_texture_asset_from_image(
