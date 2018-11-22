@@ -168,11 +168,12 @@ impl<'a> System<'a> for TextEditingMouseSystem {
         ReadStorage<'a, Selected>,
         Read<'a, EventChannel<Event>>,
         ReadExpect<'a, ScreenDimensions>,
+        Read<'a, Time>,
     );
 
     fn run(
         &mut self,
-        (mut texts, mut text_editings, selecteds, events, screen_dimensions): Self::SystemData,
+        (mut texts, mut text_editings, selecteds, events, screen_dimensions, time): Self::SystemData,
 ){
     	// Normalize text to ensure we can properly count the characters.
     	// TODO: Possible improvement to be made if this can be moved only when inserting characters into ui text.
@@ -184,17 +185,15 @@ impl<'a> System<'a> for TextEditingMouseSystem {
         }
 
 
-        // TODO: Link BlinkSystem
-        /*{
-            let mut text_edit = focused
-                .and_then(|entity| zip_options(text.get_mut(entity), editable.get_mut(entity)));
-            if let Some((ref mut _text, ref mut text_editing)) = text_edit {
+        // TODO: Finish TextEditingCursorSystem
+        {
+            if let Some((mut text_editing, _)) = (&mut text_editings, &selecteds).join().next() {
                 text_editing.cursor_blink_timer += time.delta_real_seconds();
-                if text_editing.cursor_blink_timer >= 1.0 / CURSOR_BLINK_RATE {
+                if text_editing.cursor_blink_timer >= 0.5 {
                     text_editing.cursor_blink_timer = 0.0;
                 }
-            }
-        }*/
+	        }
+        }
 
         // Process only if an editable text is selected.
         if let Some((ref mut text, ref mut text_editing, _)) = (&mut texts, &mut text_editings, &selecteds).join().next(){

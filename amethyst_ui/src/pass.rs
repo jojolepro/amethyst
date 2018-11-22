@@ -476,7 +476,7 @@ impl Pass for DrawUi {
                                 &tex_storage,
                             )).map(|tex| (tex, ed))
                     }) {
-                        let blink_on = editing.cursor_blink_timer < 0.5 / CURSOR_BLINK_RATE;
+                        let blink_on = editing.cursor_blink_timer < 0.25;
                         if editing.use_block_cursor || blink_on {
                             effect.data.textures.push(texture.view().clone());
                             effect.data.samplers.push(texture.sampler().clone());

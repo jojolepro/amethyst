@@ -81,6 +81,3 @@ pub use self::{
     text_editing::TextEditingInputSystem,
     transform::{UiFinder, UiTransform},
 };
-
-/// How many times the cursor blinks per second while editing text.
-const CURSOR_BLINK_RATE: f32 = 2.0;
