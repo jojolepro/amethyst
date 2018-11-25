@@ -90,6 +90,11 @@ where
             "ui_button_system",
             &["ui_mouse_system"],
         );
+        builder.add(
+            UiTextRasterizerSystem::new(),
+            "text_rasterizer",
+            &[],
+        );
 
         // Required for text editing.
         builder.add(BlinkSystem, "blink_system", &[]);

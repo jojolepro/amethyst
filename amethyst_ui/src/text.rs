@@ -1,6 +1,6 @@
 //! Module holding the components related to text and text editing.
 
-use gfx_glyph::{Point, PositionedGlyph};
+use rusttype::{Point, PositionedGlyph};
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
 use winit::{ElementState, Event, MouseButton, WindowEvent};
 
@@ -8,7 +8,7 @@ use amethyst_core::{
     shrev::{EventChannel, ReaderId},
     specs::prelude::{
         Component, DenseVecStorage, Join, Read, ReadExpect, ReadStorage, Resources, System,
-        WriteStorage,
+        WriteStorage, FlaggedStorage,
     },
     timing::Time,
 };
@@ -82,7 +82,7 @@ impl UiText {
 }
 
 impl Component for UiText {
-    type Storage = DenseVecStorage<Self>;
+    type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;
 }
 
 /// If this component is attached to an entity with a UiText then that UiText is editable.
@@ -171,12 +171,13 @@ impl<'a> System<'a> for TextEditingMouseSystem {
 ){
         // Normalize text to ensure we can properly count the characters.
         // TODO: Possible improvement to be made if this can be moved only when inserting characters into ui text.
-        for text in (&mut texts).join() {
+        // TODO: Put back, but without &mut join on all
+        /*for text in (&mut texts).join() {
             if (*text.text).chars().any(is_combining_mark) {
                 let normalized = text.text.nfd().collect::<String>();
                 text.text = normalized;
             }
-        }
+        }*/
 
         // TODO: Finish TextEditingCursorSystem and remove this
         {

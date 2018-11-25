@@ -1,4 +1,4 @@
-use gfx_glyph::{HorizontalAlign, VerticalAlign};
+use glyph_brush_layout::{HorizontalAlign, VerticalAlign};
 
 use amethyst_core::{
     specs::prelude::{

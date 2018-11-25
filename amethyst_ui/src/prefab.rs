@@ -10,7 +10,7 @@ use amethyst_core::specs::{
     error::BoxedErr,
     prelude::{Entities, Entity, Read, ReadExpect, WriteStorage},
 };
-use amethyst_renderer::{HiddenPropagate, Texture, TextureFormat, TextureMetadata, TexturePrefab};
+use amethyst_renderer::{HiddenPropagate, Texture, TextureFormat, TextureMetadata, TexturePrefab, TextureHandle};
 
 use super::*;
 
@@ -297,7 +297,7 @@ where
 ///
 /// - `F`: `Format` used for loading `Texture`s
 #[derive(Clone, Deserialize, Serialize)]
-pub struct UiImageBuilder<F = TextureFormat>
+pub struct UiImagePrefab<F = TextureFormat>
 where
     F: Format<Texture, Options = TextureMetadata>,
 {
@@ -305,12 +305,12 @@ where
     pub image: TexturePrefab<F>,
 }
 
-impl<'a, F> PrefabData<'a> for UiImageBuilder<F>
+impl<'a, F> PrefabData<'a> for UiImagePrefab<F>
 where
     F: Format<Texture, Options = TextureMetadata> + Clone + Sync,
 {
     type SystemData = (
-        WriteStorage<'a, UiImage>,
+        WriteStorage<'a, TextureHandle>,
         <TexturePrefab<F> as PrefabData<'a>>::SystemData,
     );
     type Result = ();
@@ -325,9 +325,7 @@ where
         let texture_handle = self.image.add_to_entity(entity, textures, entities)?;
         images.insert(
             entity,
-            UiImage {
-                texture: texture_handle,
-            },
+            texture_handle,
         )?;
         Ok(())
     }
@@ -482,7 +480,7 @@ where
         transform: UiTransformBuilder<G>,
         /// Background image
         #[serde(default = "default_container_image")]
-        background: Option<UiImageBuilder<I>>,
+        background: Option<UiImagePrefab<I>>,
         /// Child widgets
         children: Vec<UiWidget<A, I, F, C>>,
     },
@@ -491,7 +489,7 @@ where
         /// Spatial information
         transform: UiTransformBuilder<G>,
         /// Image
-        image: UiImageBuilder<I>,
+        image: UiImagePrefab<I>,
     },
     /// Text component
     Text {
@@ -549,7 +547,7 @@ where
     }
 
     /// Convenience function to access widgets `UiImageBuilder`
-    pub fn image(&self) -> Option<&UiImageBuilder<I>> {
+    pub fn image(&self) -> Option<&UiImagePrefab<I>> {
         match self {
             UiWidget::Container { ref background, .. } => background.as_ref(),
             UiWidget::Image { ref image, .. } => Some(image),
@@ -558,7 +556,7 @@ where
     }
 
     /// Convenience function to access widgets `UiImageBuilder`
-    pub fn image_mut(&mut self) -> Option<&mut UiImageBuilder<I>> {
+    pub fn image_mut(&mut self) -> Option<&mut UiImagePrefab<I>> {
         match self {
             UiWidget::Container {
                 ref mut background, ..
@@ -609,7 +607,7 @@ where
     }
 }
 
-fn default_container_image<I>() -> Option<UiImageBuilder<I>>
+fn default_container_image<I>() -> Option<UiImagePrefab<I>>
 where
     I: Format<Texture, Options = TextureMetadata>,
 {
@@ -624,7 +622,7 @@ type UiPrefabData<
     G = (),
 > = (
     Option<UiTransformBuilder<G>>,
-    Option<UiImageBuilder<I>>,
+    Option<UiImagePrefab<I>>,
     Option<UiTextBuilder<F>>,
     Option<UiButtonBuilder<A, I, F>>,
     D,
@@ -743,7 +741,7 @@ fn walk_ui_tree<A, I, F, C>(
                 .expect("Unreachable: `Prefab` entity should always be set when walking ui tree")
                 .set_data((
                     Some(transform),
-                    button.normal_image.as_ref().map(|image| UiImageBuilder {
+                    button.normal_image.as_ref().map(|image| UiImagePrefab {
                         image: image.clone(),
                     }),
                     None,

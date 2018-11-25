@@ -9,15 +9,11 @@ use fnv::FnvHashMap as HashMap;
 use gfx::preset::blend;
 use gfx::pso::buffer::ElemStride;
 use gfx::state::ColorMask;
-use gfx_glyph::{
-    BuiltInLineBreaker, FontId, GlyphBrush, GlyphBrushBuilder, GlyphCruncher, Layout, Point, Scale,
-    SectionText, VariedSection,
-};
 use glsl_layout::{vec2, Uniform};
 use hibitset::BitSet;
 use unicode_segmentation::UnicodeSegmentation;
 
-use amethyst_assets::{AssetStorage, Loader};
+use amethyst_assets::{AssetStorage, Loader, Handle};
 use amethyst_core::specs::prelude::{
     Entities, Entity, Join, Read, ReadExpect, ReadStorage, WriteStorage,
 };
@@ -45,7 +41,7 @@ struct VertexArgs {
     dimension: vec2,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct CachedDrawOrder {
     pub cached: BitSet,
     pub cache: Vec<(f32, Entity)>,
@@ -72,31 +68,20 @@ impl Hash for KeyColor {
 }
 
 /// Draw Ui elements.  UI won't display without this.  It's recommended this be your last pass.
+#[derive(new)]
 pub struct DrawUi {
+    #[new(default)]
     mesh: Option<Mesh>,
+    #[new(default)]
     cached_draw_order: CachedDrawOrder,
+    #[new(default)]
     cached_color_textures: HashMap<KeyColor, TextureHandle>,
-    glyph_brushes: GlyphBrushCache,
+    //glyph_brushes: GlyphBrushCache,
+    #[new(default)]
     next_brush_cache_id: u64,
 }
 
-type GlyphBrushCache = HashMap<u64, GlyphBrush<'static, Resources, Factory>>;
-
-impl DrawUi {
-    /// Create instance of `DrawUi` pass
-    pub fn new() -> Self {
-        DrawUi {
-            mesh: None,
-            cached_draw_order: CachedDrawOrder {
-                cached: BitSet::new(),
-                cache: Vec::new(),
-            },
-            cached_color_textures: HashMap::default(),
-            glyph_brushes: HashMap::default(),
-            next_brush_cache_id: 0,
-        }
-    }
-}
+//type GlyphBrushCache = HashMap<u64, GlyphBrush<'static, Resources, Factory>>;
 
 impl<'a> PassData<'a> for DrawUi {
     type Data = (
@@ -105,9 +90,9 @@ impl<'a> PassData<'a> for DrawUi {
         ReadExpect<'a, ScreenDimensions>,
         Read<'a, AssetStorage<Texture>>,
         Read<'a, AssetStorage<FontAsset>>,
-        ReadStorage<'a, UiImage>,
+        ReadStorage<'a, Handle<Texture>>,
         ReadStorage<'a, UiTransform>,
-        WriteStorage<'a, UiText>,
+        ReadStorage<'a, UiText>,
         ReadStorage<'a, TextEditing>,
         ReadStorage<'a, Hidden>,
         ReadStorage<'a, HiddenPropagate>,
@@ -147,9 +132,9 @@ impl Pass for DrawUi {
             screen_dimensions,
             tex_storage,
             font_storage,
-            ui_image,
+            textures,
             ui_transform,
-            mut ui_text,
+            ui_text,
             editing,
             hidden,
             hidden_prop,
@@ -237,9 +222,9 @@ impl Pass for DrawUi {
             let ui_transform = ui_transform
                 .get(entity)
                 .expect("Unreachable: Entity is guaranteed to be present based on earlier actions");
-            if let Some(image) = ui_image
+            if let Some(image) = textures
                 .get(entity)
-                .and_then(|image| tex_storage.get(&image.texture))
+                .and_then(|image| tex_storage.get(&image))
             {
                 let vertex_args = VertexArgs {
                     invert_window_size: invert_window_size.into(),
@@ -256,142 +241,9 @@ impl Pass for DrawUi {
                 effect.data.samplers.clear();
             }
 
-            if let Some(ui_text) = ui_text.get_mut(entity) {
-                // Maintain glyph brushes.
-                if ui_text.brush_id.is_none() || ui_text.font != ui_text.cached_font {
-                    let font = match font_storage.get(&ui_text.font) {
-                        Some(font) => font,
-                        None => continue,
-                    };
-                    self.glyph_brushes.insert(
-                        self.next_brush_cache_id,
-                        GlyphBrushBuilder::using_font(font.0.clone()).build(factory.clone()),
-                    );
-                    ui_text.brush_id = Some(self.next_brush_cache_id);
-                    ui_text.cached_font = ui_text.font.clone();
-                    self.next_brush_cache_id += 1;
-                }
-                // Build text sections.
-                let editing = editing.get(entity);
-                let password_string = if ui_text.password {
-                    // Build a string composed of black dot characters.
-                    let mut ret = String::with_capacity(ui_text.text.len());
-                    for _grapheme in ui_text.text.graphemes(true) {
-                        ret.push('\u{2022}');
-                    }
-                    Some(ret)
-                } else {
-                    None
-                };
-                let rendered_string = password_string.as_ref().unwrap_or(&ui_text.text);
-                let hidpi = screen_dimensions.hidpi_factor() as f32;
-                let size = ui_text.font_size * hidpi;
-                let scale = Scale::uniform(size);
-                let text = editing
-                    .and_then(|editing| {
-                        if editing.highlight_vector == 0 {
-                            return None;
-                        }
-                        let start = editing
-                            .cursor_position
-                            .min(editing.cursor_position + editing.highlight_vector)
-                            as usize;
-                        let end = editing
-                            .cursor_position
-                            .max(editing.cursor_position + editing.highlight_vector)
-                            as usize;
-                        let start_byte = rendered_string
-                            .grapheme_indices(true)
-                            .nth(start)
-                            .map(|i| i.0);
-                        let end_byte = rendered_string
-                            .grapheme_indices(true)
-                            .nth(end)
-                            .map(|i| i.0)
-                            .unwrap_or_else(|| rendered_string.len());
-                        start_byte.map(|start_byte| (editing, (start_byte, end_byte)))
-                    }).map(|(editing, (start_byte, end_byte))| {
-                        vec![
-                            SectionText {
-                                text: &((rendered_string)[0..start_byte]),
-                                scale: scale,
-                                color: ui_text.color,
-                                font_id: FontId(0),
-                            },
-                            SectionText {
-                                text: &((rendered_string)[start_byte..end_byte]),
-                                scale: scale,
-                                color: editing.selected_text_color,
-                                font_id: FontId(0),
-                            },
-                            SectionText {
-                                text: &((rendered_string)[end_byte..]),
-                                scale: scale,
-                                color: ui_text.color,
-                                font_id: FontId(0),
-                            },
-                        ]
-                    }).unwrap_or_else(|| {
-                        vec![SectionText {
-                            text: rendered_string,
-                            scale: scale,
-                            color: ui_text.color,
-                            font_id: FontId(0),
-                        }]
-                    });
-
-                let layout = match ui_text.line_mode {
-                    LineMode::Single => Layout::SingleLine {
-                        line_breaker: BuiltInLineBreaker::UnicodeLineBreaker,
-                        h_align: ui_text.align.horizontal_align(),
-                        v_align: ui_text.align.vertical_align(),
-                    },
-                    LineMode::Wrap => Layout::Wrap {
-                        line_breaker: BuiltInLineBreaker::UnicodeLineBreaker,
-                        h_align: ui_text.align.horizontal_align(),
-                        v_align: ui_text.align.vertical_align(),
-                    },
-                };
-
-                let section = VariedSection {
-                    // Needs a recenter because we are using [-0.5,0.5] for the mesh
-                    // instead of the expected [0,1]
-                    screen_position: (
-                        (ui_transform.pixel_x
-                            + ui_transform.pixel_width * ui_text.align.norm_offset().0)
-                            * hidpi,
-                        // invert y because gfx-glyph inverts it back
-                        (screen_dimensions.height()
-                            - ui_transform.pixel_y
-                            - ui_transform.pixel_height * ui_text.align.norm_offset().1)
-                            * hidpi,
-                    ),
-                    bounds: (
-                        ui_transform.pixel_width * hidpi,
-                        ui_transform.pixel_height * hidpi,
-                    ),
-                    // Invert z because of gfx-glyph using z+ forward
-                    z: ui_transform.global_z / highest_abs_z,
-                    layout,
-                    text,
-                };
-
-                // Render background highlight
-                let brush = &mut self
-                    .glyph_brushes
-                    .get_mut(&ui_text.brush_id
-                        .expect("Unreachable: `ui_text.brush_id` is guarenteed to be set earlier in this function")
-                    ).expect("Unable to get brush from `glyph_brushes`-map");
-
-                // Maintain the glyph cache (used by the input code).
-                ui_text.cached_glyphs.clear();
-                ui_text
-                    .cached_glyphs
-                    .extend(brush.glyphs(&section).cloned());
-                let cache = &mut self.cached_color_textures;
-
+            
                 // Render text selection
-                if let Some((texture, (start, end))) = editing.and_then(|ed| {
+                /*if let Some((texture, (start, end))) = editing.and_then(|ed| {
                     let start = ed
                         .cursor_position
                         .min(ed.cursor_position + ed.highlight_vector)
@@ -464,9 +316,9 @@ impl Pass for DrawUi {
                         .0,
                 ) {
                     error!("Unable to draw text! Error: {:?}", err);
-                }
+                }*/
                 // Render cursor
-                if selecteds.contains(entity) {
+                /*if selecteds.contains(entity) {
                     if let Some((texture, editing)) = editing.as_ref().and_then(|ed| {
                         tex_storage
                             .get(&cached_color_texture(
@@ -555,8 +407,7 @@ impl Pass for DrawUi {
                         effect.data.textures.clear();
                         effect.data.samplers.clear();
                     }
-                }
-            }
+                }*/
         }
     }
 }

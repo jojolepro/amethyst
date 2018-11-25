@@ -17,12 +17,14 @@ extern crate derive_new;
 extern crate fnv;
 extern crate font_kit;
 extern crate gfx;
-extern crate gfx_glyph;
 extern crate glsl_layout;
+extern crate glyph_brush_layout;
 extern crate hibitset;
+extern crate image;
 #[macro_use]
 extern crate log;
 extern crate ron;
+extern crate rusttype;
 #[macro_use]
 extern crate serde;
 extern crate shred;
@@ -42,7 +44,6 @@ mod button;
 mod event;
 mod font;
 mod format;
-mod image;
 mod layout;
 mod pass;
 mod prefab;
@@ -51,6 +52,7 @@ mod selection;
 mod selection_order_cache;
 mod text;
 mod text_editing;
+mod text_rasterizer;
 mod transform;
 
 pub use self::{
@@ -63,11 +65,10 @@ pub use self::{
         systemfont::{default_system_font, get_all_font_handles, list_system_font_families},
     },
     format::{FontAsset, FontFormat, FontHandle, OtfFormat, TtfFormat},
-    image::UiImage,
     layout::{Anchor, ScaleMode, Stretch, UiTransformSystem},
     pass::DrawUi,
     prefab::{
-        NoCustomUi, ToNativeWidget, UiCreator, UiFormat, UiImageBuilder, UiLoader, UiLoaderSystem,
+        NoCustomUi, ToNativeWidget, UiCreator, UiFormat, UiImagePrefab, UiLoader, UiLoaderSystem,
         UiPrefab, UiTextBuilder, UiTransformBuilder, UiWidget,
     },
     resize::{ResizeSystem, UiResize},
@@ -75,5 +76,6 @@ pub use self::{
     selection_order_cache::{CacheSelectionOrderSystem, CachedSelectionOrder},
     text::{LineMode, TextEditing, TextEditingMouseSystem, UiText},
     text_editing::TextEditingInputSystem,
+    text_rasterizer::UiTextRasterizerSystem,
     transform::{UiFinder, UiTransform},
 };

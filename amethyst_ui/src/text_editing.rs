@@ -38,12 +38,12 @@ impl<'a> System<'a> for TextEditingInputSystem {
     );
 
     fn run(&mut self, (mut texts, mut editables, selecteds, events): Self::SystemData) {
-        for text in (&mut texts).join() {
+        /*for text in (&mut texts).join() {
             if (*text.text).chars().any(is_combining_mark) {
                 let normalized = text.text.nfd().collect::<String>();
                 text.text = normalized;
             }
-        }
+        }*/
 
         for event in events.read(
             self.reader
