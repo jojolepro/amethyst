@@ -16,6 +16,7 @@ use {Selected, TextEditing, UiText};
 /// * Adds and removes text.
 /// * Moves selection cursor.
 /// * Grows and shrinks selected text zone.
+#[derive(Default)]
 pub struct TextEditingInputSystem {
     /// A reader for winit events.
     reader: Option<ReaderId<Event>>,
@@ -58,23 +59,7 @@ impl<'a> System<'a> for TextEditingInputSystem {
                         event: WindowEvent::ReceivedCharacter(input),
                         ..
                     } => {
-                        // Ignore obsolete control characters, and tab characters we can't render
-                        // properly anyways.  Also ignore newline characters since we don't
-                        // support multi-line text at the moment.
-                        if input < '\u{20}' {
-                            continue;
-                        }
-                        // Ignore delete character too
-                        else if input == '\u{7F}' {
-                            continue;
-                        }
-                        // Unicode reserves some characters for "private use".  Systems emit
-                        // these for no clear reason, so we're just going to ignore all of them.
-                        else if input >= '\u{E000}' && input <= '\u{F8FF}' {
-                            continue;
-                        } else if input >= '\u{F0000}' && input <= '\u{FFFFF}' {
-                            continue;
-                        } else if input >= '\u{100000}' && input <= '\u{10FFFF}' {
+                        if should_skip_char(input) {
                             continue;
                         }
                         focused_edit.cursor_blink_timer = 0.0;
@@ -357,4 +342,28 @@ fn highlighted_bytes(edit: &TextEditing, text: &UiText) -> Range<usize> {
         .map(|i| i.0)
         .unwrap_or_else(|| text.text.len());
     start_byte..end_byte
+}
+
+fn should_skip_char(input: char) -> bool {
+    // Ignore obsolete control characters, and tab characters we can't render
+    // properly anyways.  Also ignore newline characters since we don't
+    // support multi-line text at the moment.
+    if input < '\u{20}' {
+        true
+    }
+    // Ignore delete character too
+    else if input == '\u{7F}' {
+        true
+    }
+    // Unicode reserves some characters for "private use".  Systems emit
+    // these for no clear reason, so we're just going to ignore all of them.
+    else if input >= '\u{E000}' && input <= '\u{F8FF}' {
+        true
+    } else if input >= '\u{F0000}' && input <= '\u{FFFFF}' {
+        true
+    } else if input >= '\u{100000}' && input <= '\u{10FFFF}' {
+        true
+    } else {
+        false
+    }
 }

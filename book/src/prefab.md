@@ -279,11 +279,7 @@ impl Component for SomeComponent {
 }
 ```
 
-<<<<<<< HEAD
-You might notice here that `SomeComponent` have no `PrefabData` derive on its own, it is simply
-=======
 You might notice here that `SomeComponent` has no `PrefabData` derive on its own, it is simply
->>>>>>> d4b94c710e7a526a4d7f31f0500a37cbeb02e79b
 used directly in the aggregate `PrefabData`, and annotated so the derive knows to do a simple
 `WriteStorage` insert.
 

@@ -28,9 +28,11 @@ pub struct Selectable<G> {
     #[new(default)]
     /// Indicates if you can select multiple entities at once without having to press the shift or control key.
     pub auto_multi_select: bool,
-    /// Indicates if this requires the inputs (except Tab) be ignored when the component is focused.
+    /// Indicates if this consumes the inputs, all inputs (except Tab) will be ignored when the component is focused.
+    /// For example, the arrow keys will not change the selection.
+    /// Example usage: Ui Editable Text.
     #[new(default)]
-    pub require_input: bool,
+    pub consumes_inputs: bool,
 }
 
 impl<G: Send + Sync + 'static> Component for Selectable<G> {
@@ -122,18 +124,16 @@ where
                         } else {
                             // Down
                             cached.cache.get(highest + 1).unwrap_or(cached.cache.first()
-	                			.expect("unreachable: A highest ui element was selected, but none exist in the cache."))
+	                	        .expect("unreachable: A highest ui element was selected, but none exist in the cache."))
                         };
                         selecteds
                             .insert(target.1, Selected)
                             .expect("unreachable: We are inserting");
-                    } else {
+                    } else if let Some(lowest) = cached.cache.first() {
                         // If None, nothing was selected. Try to take lowest if it exists.
-                        if let Some(lowest) = cached.cache.first() {
-                            selecteds
-                                .insert(lowest.1, Selected)
-                                .expect("unreachable: We are inserting");
-                        }
+                        selecteds
+                            .insert(lowest.1, Selected)
+                            .expect("unreachable: We are inserting");
                     }
                 }
                 _ => {}

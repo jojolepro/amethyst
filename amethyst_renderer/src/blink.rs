@@ -55,7 +55,7 @@ impl<'a> System<'a> for BlinkSystem {
             // Reset timer because we ended the last cycle.
             // Keeps the overflow time.
             if blink.timer > blink.delay {
-                blink.timer = blink.timer - blink.delay;
+                blink.timer -= blink.delay;
             }
 
             // We could cache the division, but that would require a stricter api on Blink.

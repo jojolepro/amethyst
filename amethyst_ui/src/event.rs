@@ -15,7 +15,7 @@ use transform::UiTransform;
 
 /// The type of ui event.
 /// Click happens if you start and stop clicking on the same ui element.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UiEventType {
     /// When an element is clicked normally.
     /// Includes touch events.
