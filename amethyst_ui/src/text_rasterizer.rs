@@ -66,9 +66,6 @@ impl<'a> System<'a> for UiTextRasterizerSystem {
                 None => continue,
             };
 
-            // Build text sections.
-            let editing = editings.get(entity);
-
             let password_string = if ui_text.password {
                 // Build a string composed of black dot characters.
                 let mut ret = String::with_capacity(ui_text.text.len());
@@ -150,22 +147,13 @@ impl<'a> System<'a> for UiTextRasterizerSystem {
                 },
             };
 
-            // Needs a recenter because we are using [-0.5,0.5] for the mesh
-            // instead of the expected [0,1]
-            let screen_position = (
-                (ui_transform.pixel_x
-                    + ui_transform.pixel_width * ui_text.align.norm_offset().0)
-                    * hidpi,
-                // invert y because gfx-glyph inverts it back
-                (screen_dimensions.height()
-                    - ui_transform.pixel_y
-                    - ui_transform.pixel_height * ui_text.align.norm_offset().1)
-                    * hidpi,
-            );
             let bounds = (
-                ui_transform.pixel_width * hidpi,
-                ui_transform.pixel_height * hidpi,
+                ui_transform.pixel_width,
+                ui_transform.pixel_height,
             );
+
+            let offset_x = ((ui_transform.pixel_width / 2.0 + ui_transform.pixel_width * ui_text.align.norm_offset().0) * hidpi) as i32;
+            let offset_y = ((ui_transform.pixel_height / 2.0 - ui_transform.pixel_height * ui_text.align.norm_offset().1) * hidpi) as i32;
 
 
             let glyphs = layout.calculate_glyphs(
@@ -186,18 +174,20 @@ impl<'a> System<'a> for UiTextRasterizerSystem {
 
             let bounds = (size.width() as u32, size.height() as u32);
 
+            //info!("Bounds UiTransform: {:?}, offsetx: {}, offsety: {}", bounds, offset_x, offset_y);
+
             if bounds != (0, 0) {
-                let mut image = DynamicImage::new_rgba8(bounds.0, bounds.1).to_rgba();
+                let mut image = DynamicImage::new_rgba8(bounds.0 as u32, bounds.1 as u32).to_rgba();
                 for (glyph, color, _font) in glyphs {
                     if let Some(bounding_box) = glyph.pixel_bounding_box() {
                         // Draw the glyph into the image per-pixel by using the draw closure
                         glyph.draw(|x, y, v| {
-                            info!("x {} y {} bounding_box.min.x {} bounding_box.min.y {}", x, y, bounding_box.min.x, bounding_box.min.y);
+                            //info!("x {} y {} bounding_box {:?}", x, y, bounding_box);
                             //if x_with_offset < bounds.0 as u32 && y_with_offset < bounds.1 as u32 && x_with_offset >= 0 && y_with_offset >= 0 {
                             //if bounding_box.min.x >= 0 && bounding_box.min.y >= 0 {
-                                let x_with_offset = (x as i32 + bounding_box.min.x + bounds.0 as i32/2) as u32;
-                                let y_with_offset = (y as i32 + bounding_box.min.y + bounds.1 as i32/2) as u32;
-                            if x_with_offset <= bounds.0 as u32 && y_with_offset <= bounds.1 as u32 {
+                                let x_with_offset = (x as i32 + bounding_box.min.x + offset_x) as u32;
+                                let y_with_offset = (y as i32 + bounding_box.min.y + offset_y) as u32;
+                            //if x_with_offset <= bounds.0 as u32 && y_with_offset <= bounds.1 as u32 {
                             image.put_pixel(
                                 // Offset the position by the glyph bounding box
                                 x_with_offset,
@@ -207,7 +197,7 @@ impl<'a> System<'a> for UiTextRasterizerSystem {
                                     data: [(color[0]*255.0) as u8, (color[1]*255.0) as u8, (color[2]*255.0) as u8, (v * 255.0) as u8],
                                 },
                             )
-                            }
+                            //}
                         });
                     }
                 }
