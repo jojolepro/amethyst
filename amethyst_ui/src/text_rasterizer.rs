@@ -43,6 +43,9 @@ impl<'a> System<'a> for UiTextRasterizerSystem {
     );
 
     fn run(&mut self, (entities, transforms, texts, editings, mut textures, texture_assets, font_assets, screen_dimensions, loader): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("text_rasterizer");
+
         self.inserted.clear();
         self.modified.clear();
 
@@ -177,6 +180,8 @@ impl<'a> System<'a> for UiTextRasterizerSystem {
             //info!("Bounds UiTransform: {:?}, offsetx: {}, offsety: {}", bounds, offset_x, offset_y);
 
             if bounds != (0, 0) {
+                #[cfg(feature = "profiler")]
+                profile_scope!("text_rasterizer_image");
                 let mut image = DynamicImage::new_rgba8(bounds.0 as u32, bounds.1 as u32).to_rgba();
                 for (glyph, color, _font) in glyphs {
                     if let Some(bounding_box) = glyph.pixel_bounding_box() {
