@@ -2,10 +2,15 @@
 
 use std::fmt::Debug;
 
-use amethyst_assets::{PrefabData, PrefabError};
+use amethyst_assets::PrefabData;
 use amethyst_core::specs::{
     world::EntitiesRes, Component, DenseVecStorage, Entity, Join, ReadStorage, WriteStorage,
 };
+use amethyst_derive::PrefabData;
+use amethyst_error::Error;
+
+use log::error;
+use serde::{Deserialize, Serialize};
 
 /// A marker `Component` used to remove entities and clean up your scene.
 /// The generic parameter `I` is the type of id you want to use.

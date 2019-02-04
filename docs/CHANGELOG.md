@@ -15,23 +15,46 @@ The format is based on [Keep a Changelog][kc], and this project adheres to
 * Derive `Copy`, `PartialEq`, `Eq`, `Serialize`, `Deserialize` for `Flipped` component. ([#1237])
 * A way to change the default `Source` using `set_default_source` and `with_default_source`. ([#1256])
 * "How To" guides for using assets and defining custom assets. ([#1251])
+* Explanation on how prefabs function in Amethyst. ([#1114])
+* `amethyst_renderer::Rgba` is now a `Component` that changes the color and transparency of the entity
+it is attached to. ([#1282])
+* `AutoFov` and `AutoFovSystem` to adjust horizontal FOV to screen aspect ratio. ([#1281])
+* Add `icon` to `DisplayConfig` to set a window icon using a path to a file ([#1373])
 
 ### Changed
 
 * Make `application_root_dir` return a `Result<Path>` instead of a `String` ([#1213])
 * Remove unnecessary texture coordinates offset in `Sprite::from_pixel_values` ([#1267])
 * Changed `ActiveCamera` to have the `Option` inside. ([#1280])
+* `AudioBundle::new()` no longer exists, as `AudioBundle` is now a unit type. It also no longer initializes the `DjSystem` ([#1356])
+* Convert everything to use err-derive and amethyst_error ([#1365])
+* Removed redundant code in `renderer.rs` ([#1375])
 
 ### Removed
 
 ### Fixed
 
+* Fixed the "json" feature for amethyst_assets. ([#1302])
+* Fixed default system font loading to accept uppercase extension ("TTF"). ([#1328])
+* Set width and height of Pong Paddles ([#1363])
+* Fix omission in `PosNormTangTex` documentation. ([#1371])
+
+[#1114]: https://github.com/amethyst/amethyst/pull/1114
 [#1213]: https://github.com/amethyst/amethyst/pull/1213
 [#1237]: https://github.com/amethyst/amethyst/pull/1237
 [#1251]: https://github.com/amethyst/amethyst/pull/1251
 [#1256]: https://github.com/amethyst/amethyst/pull/1256
 [#1267]: https://github.com/amethyst/amethyst/pull/1267
 [#1280]: https://github.com/amethyst/amethyst/pull/1280
+[#1282]: https://github.com/amethyst/amethyst/pull/1282
+[#1281]: https://github.com/amethyst/amethyst/pull/1281
+[#1302]: https://github.com/amethyst/amethyst/pull/1302
+[#1328]: https://github.com/amethyst/amethyst/pull/1328
+[#1356]: https://github.com/amethyst/amethyst/pull/1356
+[#1363]: https://github.com/amethyst/amethyst/pull/1363
+[#1365]: https://github.com/amethyst/amethyst/pull/1365
+[#1371]: https://github.com/amethyst/amethyst/pull/1371
+[#1373]: https://github.com/amethyst/amethyst/pull/1373
 
 ## [0.10.0] - 2018-12
 
@@ -737,4 +760,3 @@ The format is based on [Keep a Changelog][kc], and this project adheres to
 [0.4.1]: https://github.com/amethyst/amethyst/compare/v0.4...v0.4.1
 [0.4.0]: https://github.com/amethyst/amethyst/compare/v0.3.1...v0.4
 [0.3.1]: https://github.com/amethyst/amethyst/compare/v0.3...v0.3.1
-
