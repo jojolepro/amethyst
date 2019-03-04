@@ -79,8 +79,8 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(UiBundle::<String, String>::new())?;
     let mut game = Application::build(assets_dir, Pong)?
         .with_frame_limit(
-            FrameRateLimitStrategy::SleepAndYield(Duration::from_millis(2)),
-            144,
+            FrameRateLimitStrategy::Unlimited,
+            9999,
         )
         .build(game_data)?;
     game.run();
