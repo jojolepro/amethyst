@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use amethyst_assets::{Asset, AssetStorage, Handle, PrefabData, ProcessingState};
 use amethyst_core::{
+    ecs::prelude::{Component, DenseVecStorage, Entity, VecStorage, WriteStorage},
     shred::SystemData,
-    specs::prelude::{Component, DenseVecStorage, Entity, VecStorage, WriteStorage},
     timing::{duration_to_secs, secs_to_duration},
 };
 use amethyst_derive::PrefabData;
@@ -870,7 +870,7 @@ where
     }
 
     /// Check if there is an animation with the given id in the set
-    pub fn has_animation(&mut self, id: I) -> bool {
+    pub fn has_animation(&self, id: I) -> bool {
         self.animations.iter().any(|a| a.0 == id)
     }
 }

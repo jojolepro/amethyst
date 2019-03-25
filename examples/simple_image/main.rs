@@ -4,8 +4,8 @@ use amethyst::{
     ecs::Entity,
     prelude::*,
     renderer::{
-        Camera, ColorMask, DepthMode, DisplayConfig, DrawFlat2D, Pipeline, PngFormat, Projection,
-        RenderBundle, Stage, Texture, TextureHandle, TextureMetadata, ALPHA,
+        Camera, DisplayConfig, DrawFlat2D, Pipeline, PngFormat, Projection, RenderBundle, Stage,
+        Texture, TextureHandle, TextureMetadata,
     },
     utils::application_root_dir,
 };
@@ -30,11 +30,7 @@ fn main() -> amethyst::Result<()> {
     let pipe = Pipeline::build().with_stage(
         Stage::with_backbuffer()
             .clear_target([0.1, 0.1, 0.1, 1.0], 1.0)
-            .with_pass(DrawFlat2D::new().with_transparency(
-                ColorMask::all(),
-                ALPHA,
-                Some(DepthMode::LessEqualWrite),
-            )),
+            .with_pass(DrawFlat2D::new()),
     );
 
     let game_data = GameDataBuilder::default()
@@ -49,7 +45,7 @@ fn main() -> amethyst::Result<()> {
 
 fn init_camera(world: &mut World) {
     let mut transform = Transform::default();
-    transform.set_z(1.0);
+    transform.set_translation_z(1.0);
     world
         .create_entity()
         .with(Camera::from(Projection::orthographic(
@@ -61,8 +57,8 @@ fn init_camera(world: &mut World) {
 
 fn init_image(world: &mut World, texture: &TextureHandle) -> Entity {
     let mut transform = Transform::default();
-    transform.set_x(0.0);
-    transform.set_y(0.0);
+    transform.set_translation_x(0.0);
+    transform.set_translation_y(0.0);
 
     world
         .create_entity()

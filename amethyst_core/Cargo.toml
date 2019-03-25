@@ -16,9 +16,10 @@ appveyor = { repository = "amethyst/amethyst" }
 travis-ci = { repository = "amethyst/amethyst" }
 
 [dependencies]
-nalgebra = { version = "0.17", features = [ "sparse", "serde-serialize" ] }
+nalgebra = { version = "0.17", features = ["serde-serialize", "mint"] }
 approx = "0.3"
 amethyst_error = { path = "../amethyst_error", version = "0.1.0" }
+derive-new = "0.5"
 fnv = "1"
 hibitset = { version = "0.5.2", features = ["parallel"] }
 log = "0.4.6"

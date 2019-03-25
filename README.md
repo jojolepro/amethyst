@@ -2,7 +2,7 @@
 
 # Amethyst
 
-[![Build Status][s1]][tc] [![Crates.io][s2]][ci] [![docs page][docs-badge]][docs] [![MIT/Apache][s3]][li] [![Join us on Discord][s4]][di] ![Lines of Code][s6]
+[![Build Status][s1]][tc] [![Crates.io][s2]][ci] [![docs page][docs-badge]][docs] [![MIT/Apache][s3]][li] [![Join us on Discord][s4]][di]  [![Community forum][s5]][ds] [![Reddit][s7]][rd] ![Lines of Code][s6]
 
 [s1]: https://travis-ci.org/amethyst/amethyst.svg?branch=master
 [s2]: https://img.shields.io/crates/v/amethyst.svg
@@ -10,11 +10,15 @@
 [docs]: https://www.amethyst.rs/doc/
 [s3]: https://img.shields.io/badge/license-MIT%2FApache-blue.svg
 [s4]: https://img.shields.io/discord/425678876929163284.svg?logo=discord
+[s5]: https://img.shields.io/badge/discourse-online-green.svg
 [s6]: https://tokei.rs/b1/github/amethyst/amethyst?category=code
+[s7]: https://img.shields.io/badge/dynamic/json.svg?label=r/Amethyst&query=$.data.subscribers&url=https://www.reddit.com/r/Amethyst/about.json
 [tc]: https://travis-ci.org/amethyst/amethyst/
 [ci]: https://crates.io/crates/amethyst/
 [li]: COPYING
 [di]: https://discord.gg/amethyst
+[ds]: https://community.amethyst-engine.org/
+[rd]: https://www.reddit.com/r/Amethyst/
 
 ## What is Amethyst?
 
@@ -99,7 +103,7 @@ Additionally, make sure you have EGL installed. Since the package depends on you
 ### Debian/Ubuntu
 
 ```
-$ sudo apt install libasound2-dev libx11-xcb-dev libssl-dev cmake libfreetype6-dev libexpat1-dev libxcb1-dev
+$ sudo apt install pkg-config libasound2-dev libssl-dev cmake libfreetype6-dev libexpat1-dev libxcb-composite0-dev
 ```
 
 ### Fedora
@@ -154,6 +158,8 @@ Other places you might want to check out are [r/rust_gamedev][rg] and the [#rust
 
 ## Contributing
 
+**Note:** Any interaction with the Amethyst project is subject to our [Code of Conduct](https://github.com/amethyst/amethyst/blob/master/CODE_OF_CONDUCT.md).
+
 Amethyst is a community-based project that welcomes contributions from anyone. If you're interested in helping out, please read the [contribution guidelines][cm] before getting started.
 
 We have a [good first issue][gfi] category that groups all issues or feature requests that can be made without having an extensive knowledge of Rust or Amethyst. Working on those issues is a good, if not the best, way to learn.
@@ -169,11 +175,7 @@ If for some reason we don't have any open PRs in need of a review nor any good f
 
 ## Backers
 
-Thank you to all our backers! 🙏 [Become a backer](https://www.amethyst-engine.org/donate)
-
-<a href="https://opencollective.com/amethyst#backers" target="_blank">
-  <img src="https://opencollective.com/amethyst/backers.svg?width=890">
-</a>
+Thank you to all our backers! 🙏 [Become a backer](https://www.amethyst.rs/donate)
 
 ## Sponsors
 
@@ -181,6 +183,11 @@ Amethyst is supported by:
 <p>
   <a href="https://www.digitalocean.com?utm_medium=opensource&utm_source=amethyst/">
     <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="201px">
+  </a>
+</p>
+<p>
+  <a href="http://embark-studios.com">
+    <img src="https://cdn.discordapp.com/attachments/497710174543544330/543104348423454730/unknown.png" width="201px">
   </a>
 </p>
 

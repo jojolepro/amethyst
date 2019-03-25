@@ -10,16 +10,16 @@ mod sprite_sheet_loader;
 use amethyst::{
     assets::{AssetStorage, Loader},
     core::{
-        nalgebra::Orthographic3,
+        math::Orthographic3,
         transform::{Transform, TransformBundle},
     },
     ecs::prelude::Entity,
     input::{get_key, is_close_requested, is_key_down},
     prelude::*,
     renderer::{
-        Camera, ColorMask, DepthMode, DisplayConfig, DrawFlat2D, ElementState, Hidden, Pipeline,
-        Projection, RenderBundle, ScreenDimensions, SpriteRender, SpriteSheet, SpriteSheetHandle,
-        Stage, Transparent, VirtualKeyCode, ALPHA,
+        Camera, DisplayConfig, DrawFlat2D, ElementState, Hidden, Pipeline, Projection,
+        RenderBundle, ScreenDimensions, SpriteRender, SpriteSheet, SpriteSheetHandle, Stage,
+        Transparent, VirtualKeyCode,
     },
     utils::application_root_dir,
 };
@@ -205,7 +205,7 @@ impl Example {
         };
 
         let mut camera_transform = Transform::default();
-        camera_transform.set_xyz(0.0, 0.0, self.camera_z);
+        camera_transform.set_translation_xyz(0.0, 0.0, self.camera_z);
 
         let camera = world
             .create_entity()
@@ -255,7 +255,7 @@ impl Example {
         };
         // This `Transform` moves the sprites to the middle of the window
         let mut common_transform = Transform::default();
-        common_transform.set_xyz(width / 2.0 - sprite_offset_x, height / 2.0, 0.0);
+        common_transform.set_translation_xyz(width / 2.0 - sprite_offset_x, height / 2.0, 0.0);
 
         self.draw_sprites(world, &common_transform);
     }
@@ -281,7 +281,11 @@ impl Example {
             } else {
                 i as f32
             };
-            sprite_transform.set_xyz((i * sprite_w) as f32 * SPRITE_SPACING_RATIO, z, z);
+            sprite_transform.set_translation_xyz(
+                (i * sprite_w) as f32 * SPRITE_SPACING_RATIO,
+                z,
+                z,
+            );
 
             // This combines multiple `Transform`ations.
             sprite_transform.concat(&common_transform);
@@ -356,11 +360,7 @@ fn main() -> amethyst::Result<()> {
     let pipe = Pipeline::build().with_stage(
         Stage::with_backbuffer()
             .clear_target([0., 0., 0., 1.], 5.)
-            .with_pass(DrawFlat2D::new().with_transparency(
-                ColorMask::all(),
-                ALPHA,
-                Some(DepthMode::LessEqualWrite),
-            )),
+            .with_pass(DrawFlat2D::new()),
     );
 
     let assets_directory = app_root.join("examples/assets/");

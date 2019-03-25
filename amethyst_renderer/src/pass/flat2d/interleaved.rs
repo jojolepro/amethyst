@@ -8,8 +8,8 @@ use log::warn;
 
 use amethyst_assets::{AssetStorage, Handle};
 use amethyst_core::{
-    nalgebra::Vector4,
-    specs::prelude::{Join, Read, ReadStorage},
+    ecs::prelude::{Join, Read, ReadExpect, ReadStorage},
+    math::Vector4,
     transform::GlobalTransform,
 };
 use amethyst_error::Error;
@@ -18,11 +18,16 @@ use crate::{
     cam::{ActiveCamera, Camera},
     hidden::{Hidden, HiddenPropagate},
     mesh::MeshHandle,
-    pass::util::{add_texture, get_camera, set_view_args, setup_textures, ViewArgs},
+    pass::util::{
+        add_texture, default_transparency, get_camera, set_view_args, set_view_args_screen,
+        setup_textures, ViewArgs,
+    },
     pipe::{
         pass::{Pass, PassData},
         DepthMode, Effect, NewEffect,
     },
+    resources::ScreenDimensions,
+    screen_space::{ScreenSpace, ScreenSpaceSettings},
     sprite::{Flipped, SpriteRender, SpriteSheet},
     sprite_visibility::SpriteVisibility,
     tex::{Texture, TextureHandle},
@@ -37,6 +42,7 @@ use super::*;
 #[derive(Derivative, Clone, Debug)]
 #[derivative(Default(bound = "Self: Pass"))]
 pub struct DrawFlat2D {
+    #[derivative(Default(value = "default_transparency()"))]
     transparency: Option<(ColorMask, Blend, Option<DepthMode>)>,
     batch: TextureBatch,
 }
@@ -50,8 +56,24 @@ where
         Default::default()
     }
 
-    /// Enable transparency
-    pub fn with_transparency(
+    /// Transparency is enabled by default.
+    /// If you pass false to this function transparency will be disabled.
+    ///
+    /// If you pass true and this was disabled previously default settings will be reinstated.
+    /// If you pass true and this was already enabled this will do nothing.
+    pub fn with_transparency(mut self, input: bool) -> Self {
+        if input {
+            if self.transparency.is_none() {
+                self.transparency = default_transparency();
+            }
+        } else {
+            self.transparency = None;
+        }
+        self
+    }
+
+    /// Set transparency settings to custom values.
+    pub fn with_transparency_settings(
         mut self,
         mask: ColorMask,
         blend: Blend,
@@ -81,6 +103,9 @@ impl<'a> PassData<'a> for DrawFlat2D {
         ReadStorage<'a, Flipped>,
         ReadStorage<'a, MeshHandle>,
         ReadStorage<'a, Rgba>,
+        ReadStorage<'a, ScreenSpace>,
+        ReadExpect<'a, ScreenDimensions>,
+        Read<'a, ScreenSpaceSettings>,
     );
 }
 
@@ -124,19 +149,23 @@ impl Pass for DrawFlat2D {
             flipped,
             mesh,
             rgba,
+            screens,
+            screen_dimensions,
+            screen_space_settings,
         ): <Self as PassData<'a>>::Data,
     ) {
         let camera = get_camera(active, &camera, &global);
 
         match visibility {
             None => {
-                for (sprite_render, global, flipped, rgba, _, _) in (
+                for (sprite_render, global, flipped, rgba, _, _, screen_maybe) in (
                     &sprite_render,
                     &global,
                     flipped.maybe(),
                     rgba.maybe(),
                     !&hidden,
                     !&hidden_prop,
+                    screens.maybe(),
                 )
                     .join()
                 {
@@ -147,10 +176,11 @@ impl Pass for DrawFlat2D {
                         rgba,
                         &sprite_sheet_storage,
                         &tex_storage,
+                        screen_maybe.is_some(),
                     );
                 }
 
-                for (image_render, global, flipped, rgba, _, _, _) in (
+                for (image_render, global, flipped, rgba, _, _, _, screen_maybe) in (
                     &texture_handle,
                     &global,
                     flipped.maybe(),
@@ -158,22 +188,30 @@ impl Pass for DrawFlat2D {
                     !&hidden,
                     !&hidden_prop,
                     !&mesh,
+                    screens.maybe(),
                 )
                     .join()
                 {
-                    self.batch
-                        .add_image(image_render, Some(global), flipped, rgba, &tex_storage);
+                    self.batch.add_image(
+                        image_render,
+                        Some(global),
+                        flipped,
+                        rgba,
+                        &tex_storage,
+                        screen_maybe.is_some(),
+                    );
                 }
 
                 self.batch.sort();
             }
             Some(ref visibility) => {
-                for (sprite_render, global, flipped, rgba, _) in (
+                for (sprite_render, global, flipped, rgba, _, screen_maybe) in (
                     &sprite_render,
                     &global,
                     flipped.maybe(),
                     rgba.maybe(),
                     &visibility.visible_unordered,
+                    screens.maybe(),
                 )
                     .join()
                 {
@@ -184,27 +222,36 @@ impl Pass for DrawFlat2D {
                         rgba,
                         &sprite_sheet_storage,
                         &tex_storage,
+                        screen_maybe.is_some(),
                     );
                 }
 
-                for (image_render, global, flipped, rgba, _, _) in (
+                for (image_render, global, flipped, rgba, _, _, screen_maybe) in (
                     &texture_handle,
                     &global,
                     flipped.maybe(),
                     rgba.maybe(),
                     &visibility.visible_unordered,
                     !&mesh,
+                    screens.maybe(),
                 )
                     .join()
                 {
-                    self.batch
-                        .add_image(image_render, Some(global), flipped, rgba, &tex_storage);
+                    self.batch.add_image(
+                        image_render,
+                        Some(global),
+                        flipped,
+                        rgba,
+                        &tex_storage,
+                        screen_maybe.is_some(),
+                    );
                 }
 
                 // We are free to optimize the order of the opaque sprites.
                 self.batch.sort();
 
                 for entity in &visibility.visible_ordered {
+                    let screen = screens.contains(*entity);
                     if let Some(sprite_render) = sprite_render.get(*entity) {
                         self.batch.add_sprite(
                             sprite_render,
@@ -213,6 +260,7 @@ impl Pass for DrawFlat2D {
                             rgba.get(*entity),
                             &sprite_sheet_storage,
                             &tex_storage,
+                            screen,
                         );
                     } else if let Some(texture_handle) = texture_handle.get(*entity) {
                         self.batch.add_image(
@@ -221,6 +269,7 @@ impl Pass for DrawFlat2D {
                             flipped.get(*entity),
                             rgba.get(*entity),
                             &tex_storage,
+                            screen,
                         )
                     }
                 }
@@ -233,6 +282,8 @@ impl Pass for DrawFlat2D {
             camera,
             &sprite_sheet_storage,
             &tex_storage,
+            &screen_dimensions,
+            &screen_space_settings,
         );
         self.batch.reset();
     }
@@ -246,6 +297,7 @@ enum TextureDrawData {
         flipped: Option<Flipped>,
         rgba: Option<Rgba>,
         transform: GlobalTransform,
+        screen: bool,
     },
     Image {
         texture_handle: Handle<Texture>,
@@ -254,6 +306,7 @@ enum TextureDrawData {
         rgba: Option<Rgba>,
         width: usize,
         height: usize,
+        screen: bool,
     },
 }
 
@@ -283,6 +336,7 @@ impl TextureDrawData {
 #[derive(Clone, Default, Debug)]
 struct TextureBatch {
     textures: Vec<TextureDrawData>,
+    textures_screen: Vec<TextureDrawData>,
 }
 
 impl TextureBatch {
@@ -293,6 +347,7 @@ impl TextureBatch {
         flipped: Option<&Flipped>,
         rgba: Option<&Rgba>,
         tex_storage: &AssetStorage<Texture>,
+        screen: bool,
     ) {
         let global = match global {
             Some(v) => v,
@@ -307,14 +362,20 @@ impl TextureBatch {
             }
         };
 
-        self.textures.push(TextureDrawData::Image {
+        let data = TextureDrawData::Image {
             texture_handle: texture_handle.clone(),
             transform: *global,
             flipped: flipped.cloned(),
             rgba: rgba.cloned(),
             width: texture_dims.0,
             height: texture_dims.1,
-        });
+            screen,
+        };
+        if screen {
+            self.textures_screen.push(data);
+        } else {
+            self.textures.push(data);
+        }
     }
 
     pub fn add_sprite(
@@ -325,6 +386,7 @@ impl TextureBatch {
         rgba: Option<&Rgba>,
         sprite_sheet_storage: &AssetStorage<SpriteSheet>,
         tex_storage: &AssetStorage<Texture>,
+        screen: bool,
     ) {
         let global = match global {
             Some(v) => v,
@@ -345,26 +407,38 @@ impl TextureBatch {
             }
             None => {
                 warn!(
-                    "Sprite sheet not loaded for sprite_render: `{:?}`.",
+                    "Sprite sheet not loaded for sprite_render: `{:?}`. \
+                     Ensure that `RenderBundle::new(..).with_sprite_sheet_processor()` has been \
+                     called and that the corresponding `SpriteSheet` asset has loaded \
+                     successfully.",
                     sprite_render
                 );
                 return;
             }
         };
 
-        self.textures.push(TextureDrawData::Sprite {
+        let data = TextureDrawData::Sprite {
             texture_handle,
             render: sprite_render.clone(),
             flipped: flipped.cloned(),
             rgba: rgba.cloned(),
             transform: *global,
-        });
+            screen,
+        };
+
+        if screen {
+            self.textures_screen.push(data);
+        } else {
+            self.textures.push(data);
+        }
     }
 
     /// Optimize the sprite order to generating more coherent batches.
     pub fn sort(&mut self) {
         // Only takes the texture into account for now.
         self.textures.sort_by(|a, b| a.tex_id().cmp(&b.tex_id()));
+        self.textures_screen
+            .sort_by(|a, b| a.tex_id().cmp(&b.tex_id()));
     }
 
     pub fn encode(
@@ -375,19 +449,52 @@ impl TextureBatch {
         camera: Option<(&Camera, &GlobalTransform)>,
         sprite_sheet_storage: &AssetStorage<SpriteSheet>,
         tex_storage: &AssetStorage<Texture>,
+        screen_dimensions: &ScreenDimensions,
+        screen_space_settings: &ScreenSpaceSettings,
+    ) {
+        if !self.textures.is_empty() {
+            // Draw to world
+            set_view_args(effect, encoder, camera);
+            TextureBatch::encode_vec(
+                &self.textures,
+                encoder,
+                factory,
+                effect,
+                sprite_sheet_storage,
+                tex_storage,
+            );
+        }
+
+        if !self.textures_screen.is_empty() {
+            if let Some(depth_data) = &effect.data.out_depth {
+                encoder.clear_depth(&depth_data.0, 1.0);
+            }
+            // Draw to screen
+            set_view_args_screen(effect, encoder, screen_dimensions, screen_space_settings);
+            TextureBatch::encode_vec(
+                &self.textures_screen,
+                encoder,
+                factory,
+                effect,
+                sprite_sheet_storage,
+                tex_storage,
+            );
+        }
+    }
+
+    fn encode_vec(
+        textures: &Vec<TextureDrawData>,
+        encoder: &mut Encoder,
+        factory: &mut Factory,
+        effect: &mut Effect,
+        sprite_sheet_storage: &AssetStorage<SpriteSheet>,
+        tex_storage: &AssetStorage<Texture>,
     ) {
         use gfx::{
             buffer,
             memory::{Bind, Typed},
             Factory,
         };
-
-        if self.textures.is_empty() {
-            return;
-        }
-
-        // Sprite vertex shader
-        set_view_args(effect, encoder, camera);
 
         // We might be able to improve performance here if we
         // preallocate the maximum needed capacity. We need to
@@ -397,9 +504,9 @@ impl TextureBatch {
         // doing the allocations.
         let mut instance_data = Vec::<f32>::new();
         let mut num_instances = 0;
-        let num_quads = self.textures.len();
+        let num_quads = textures.len();
 
-        for (i, quad) in self.textures.iter().enumerate() {
+        for (i, quad) in textures.iter().enumerate() {
             let texture = tex_storage
                 .get(&quad.texture_handle())
                 .expect("Unable to get texture of sprite");
@@ -498,7 +605,7 @@ impl TextureBatch {
             // 1. We are at the last sprite and want to submit all pending work.
             // 2. The next sprite will use a different texture triggering a flush.
             let need_flush = i >= num_quads - 1
-                || self.textures[i + 1].texture_handle().id() != quad.texture_handle().id();
+                || textures[i + 1].texture_handle().id() != quad.texture_handle().id();
 
             if need_flush {
                 add_texture(effect, texture);
@@ -532,5 +639,6 @@ impl TextureBatch {
 
     pub fn reset(&mut self) {
         self.textures.clear();
+        self.textures_screen.clear();
     }
 }

@@ -20,24 +20,52 @@ The format is based on [Keep a Changelog][kc], and this project adheres to
 it is attached to. ([#1282])
 * `AutoFov` and `AutoFovSystem` to adjust horizontal FOV to screen aspect ratio. ([#1281])
 * Add `icon` to `DisplayConfig` to set a window icon using a path to a file ([#1373])
+* Added setting to control gfx_device_gl logging level separately, and set it to Warn by default. ([#1404])
+* Add `loaded_icon` to `DisplayConfig` to set a window icon programatically ([#1405])
+* Added optional feature gates which will reduce compilation times when used. ([#1412])
+* Several passes got `with_transparency_settings` which changes the transparency settings for the pass. ([#1419])
+* Add `SpriteRenderPrefab`. ([#1435])
+* Add `ScreenSpace` component. Draws entities using the screen coordinates. ([#1424])
+* Add `add_removal_to_entity` function. ([#1445])
+* Add `position_from_screen` to `Camera`. Transforms position from screen space to camera space. ([#1442])
+* Add `SpriteScenePrefab`. Allows load sprites from a grid and add them to the `SpriteRenderer`. ([#1469])
 
 ### Changed
 
+* Make `frame_limiter::do_sleep` calculate the amount of time to sleep instead of calling `sleep(0)` ([#1446])
 * Make `application_root_dir` return a `Result<Path>` instead of a `String` ([#1213])
 * Remove unnecessary texture coordinates offset in `Sprite::from_pixel_values` ([#1267])
 * Changed `ActiveCamera` to have the `Option` inside. ([#1280])
 * `AudioBundle::new()` no longer exists, as `AudioBundle` is now a unit type. It also no longer initializes the `DjSystem` ([#1356])
 * Convert everything to use err-derive and amethyst_error ([#1365])
 * Removed redundant code in `renderer.rs` ([#1375])
+* Refactored audio initialization to be more bundle-centric ([#1388])
+* Changed argument types of `exec_removal` to allow use of both Read and Write Storages. ([#1397])
+* Changed default log level to Info. ([#1404])
+* Remove unnecessary `mut` from `AnimationControlSet::has_animation` ([#1408])
+* Moved amethyst_gltf from development workspace to be like the other amethyst_* subcrates. ([#1411])
+* Re-exported amethyst_gltf by amethyst as amethyst::gltf. ([#1411])
+* `Default::default` now returns a pass with transparency enabled for all applicable passes. ([#1419])
+* Several passes had a function named `with_transparency` changed to accept a boolean. ([#1419])
+* `FrameRateLimitConfig` has a `new` constructor, and its fields are made public. ([#1436])
+* Derive `Deserialize, Serialize` for `MaterialPrimitive` and `SpriteRenderPrimitive`, remove
+extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
+* Renamed `amethyst_core::specs` to `amethyst_core::ecs` and `amethyst_core::nalgebra` to `amethyst_core::math`. ([#1410])
+* Simplified some of the conditionals in the Pong tutorial. ([#1439])
+* Changed the names of many Transform functions to better reflect their actual function and reduce potential semantic confusion ([#1451])
+* `ProgressCounter#num_loading()` no longer includes failed assets. ([#1452])
+* `SpriteSheetFormat` field renamed from `spritesheet_*` to `texture_*`. ([#1469])
 
 ### Removed
 
 ### Fixed
 
+* Optimize loading of wavefront obj mesh assets by getting rid of unnecessary allocations. ([#1454])
 * Fixed the "json" feature for amethyst_assets. ([#1302])
 * Fixed default system font loading to accept uppercase extension ("TTF"). ([#1328])
 * Set width and height of Pong Paddles ([#1363])
 * Fix omission in `PosNormTangTex` documentation. ([#1371])
+* Fix division by zero in vertex data building ([#1481])
 
 [#1114]: https://github.com/amethyst/amethyst/pull/1114
 [#1213]: https://github.com/amethyst/amethyst/pull/1213
@@ -55,6 +83,26 @@ it is attached to. ([#1282])
 [#1365]: https://github.com/amethyst/amethyst/pull/1365
 [#1371]: https://github.com/amethyst/amethyst/pull/1371
 [#1373]: https://github.com/amethyst/amethyst/pull/1373
+[#1388]: https://github.com/amethyst/amethyst/pull/1388
+[#1397]: https://github.com/amethyst/amethyst/pull/1397
+[#1404]: https://github.com/amethyst/amethyst/pull/1404
+[#1408]: https://github.com/amethyst/amethyst/pull/1408
+[#1405]: https://github.com/amethyst/amethyst/pull/1405
+[#1411]: https://github.com/amethyst/amethyst/pull/1411
+[#1412]: https://github.com/amethyst/amethyst/pull/1412
+[#1419]: https://github.com/amethyst/amethyst/pull/1419
+[#1424]: https://github.com/amethyst/amethyst/pull/1424
+[#1435]: https://github.com/amethyst/amethyst/pull/1435
+[#1410]: https://github.com/amethyst/amethyst/pull/1410
+[#1439]: https://github.com/amethyst/amethyst/pull/1439
+[#1445]: https://github.com/amethyst/amethyst/pull/1445
+[#1446]: https://github.com/amethyst/amethyst/pull/1446
+[#1451]: https://github.com/amethyst/amethyst/pull/1451
+[#1452]: https://github.com/amethyst/amethyst/pull/1452
+[#1454]: https://github.com/amethyst/amethyst/pull/1454
+[#1442]: https://github.com/amethyst/amethyst/pull/1442
+[#1469]: https://github.com/amethyst/amethyst/pull/1469
+[#1481]: https://github.com/amethyst/amethyst/pull/1481
 
 ## [0.10.0] - 2018-12
 
@@ -71,6 +119,7 @@ it is attached to. ([#1282])
 * `UiWidget` variant `Custom` for custom composited widgets ([#1112])
 * `AssetLoaderSystemData` abstracts resources needed from `World` to do asset loading ([#1090])
 * `amethyst_ui::get_default_font` supports loading system font from Path. ([#1108])
+* Added render utilities to easily create `Material` and `Handle<Texture>`. ([#1126])
 * Added `Callback` and `CallbackQueue` for use in asynchronous contexts. ([#1125])
 * Added Trans event queue. Used to trigger state transitions from systems. Also used to trigger multiple state transitions at once. (For example, to `Trans::Pop` two states.) ([#1069])
 * `sprite_camera_follow` example showing how to use a Camera that has a sprite Parent ([#1099])
@@ -125,6 +174,7 @@ it is attached to. ([#1282])
 [#1098]: https://github.com/amethyst/amethyst/pull/1098
 [#1099]: https://github.com/amethyst/amethyst/pull/1099
 [#1108]: https://github.com/amethyst/amethyst/pull/1108
+[#1126]: https://github.com/amethyst/amethyst/pull/1126
 [#1125]: https://github.com/amethyst/amethyst/pull/1125
 [#1066]: https://github.com/amethyst/amethyst/pull/1066
 [#1117]: https://github.com/amethyst/amethyst/pull/1117
@@ -144,7 +194,6 @@ it is attached to. ([#1282])
 [#1189]: https://github.com/amethyst/amethyst/pull/1189
 [winit_018]: https://github.com/tomaka/winit/blob/v0.18.0/CHANGELOG.md#version-0180-2018-11-07
 [glutin_019]: https://github.com/tomaka/glutin/blob/master/CHANGELOG.md#version-0190-2018-11-09
-
 
 ## [0.9.0] - 2018-10
 ### Added

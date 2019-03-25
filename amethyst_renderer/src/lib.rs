@@ -24,7 +24,6 @@
 //! [gh]: https://github.com/amethyst/amethyst/tree/master/src/renderer
 //! [bk]: https://www.amethyst.rs/book/master/
 
-#![doc(html_logo_url = "https://www.amethyst.rs/assets/amethyst.svg")]
 #![warn(missing_docs, rust_2018_idioms, rust_2018_compatibility)]
 
 pub use crate::{
@@ -60,14 +59,16 @@ pub use crate::{
     },
     renderer::Renderer,
     resources::{AmbientColor, ScreenDimensions, WindowMessages},
+    screen_space::{ScreenSpace, ScreenSpaceSettings},
     shape::{InternalShape, Shape, ShapePrefab, ShapeUpload},
     skinning::{
         AnimatedComboMeshCreator, AnimatedVertexBufferCombination, JointIds, JointTransforms,
         JointTransformsPrefab, JointWeights,
     },
     sprite::{
-        Flipped, Sprite, SpriteRender, SpriteSheet, SpriteSheetFormat, SpriteSheetHandle,
-        TextureCoordinates,
+        Flipped, Sprite, SpriteGrid, SpriteList, SpritePosition, SpriteRender, SpriteRenderPrefab,
+        SpriteScenePrefab, SpriteSheet, SpriteSheetFormat, SpriteSheetHandle, SpriteSheetPrefab,
+        Sprites, TextureCoordinates,
     },
     sprite_visibility::{SpriteVisibility, SpriteVisibilitySortingSystem},
     system::RenderSystem,
@@ -109,6 +110,7 @@ mod mtl;
 mod pass;
 mod renderer;
 mod resources;
+mod screen_space;
 mod shape;
 mod skinning;
 mod sprite;
