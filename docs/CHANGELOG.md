@@ -29,6 +29,8 @@ it is attached to. ([#1282])
 * Add `add_removal_to_entity` function. ([#1445])
 * Add `position_from_screen` to `Camera`. Transforms position from screen space to camera space. ([#1442])
 * Add `SpriteScenePrefab`. Allows load sprites from a grid and add them to the `SpriteRenderer`. ([#1469])
+* Add `Widgets` resource. Allows keeping track of UI entities and their components and iterating over them. ([#1390])
+* `AmethystApplication` takes in application name using `with_app_name(..)`. ([#1499])
 
 ### Changed
 
@@ -55,6 +57,10 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 * Changed the names of many Transform functions to better reflect their actual function and reduce potential semantic confusion ([#1451])
 * `ProgressCounter#num_loading()` no longer includes failed assets. ([#1452])
 * `SpriteSheetFormat` field renamed from `spritesheet_*` to `texture_*`. ([#1469])
+* Add new `keep_aspect_ratio` field to `Stretch::XY`. ([#1480])
+* Renamed `Text` UI Prefab to `Label` in preparation for full widget integration in prefabs. ([#1390])
+* `amethyst_test` includes the application name of a failing test. ([#1499])
+* `amethyst_test` returns the panic message of a failed execution. ([#1499])
 
 ### Removed
 
@@ -66,6 +72,7 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 * Set width and height of Pong Paddles ([#1363])
 * Fix omission in `PosNormTangTex` documentation. ([#1371])
 * Fix division by zero in vertex data building ([#1481])
+* Fix tuple index generation on `PrefabData` and `EventReader` proc macros. ([#1501])
 
 [#1114]: https://github.com/amethyst/amethyst/pull/1114
 [#1213]: https://github.com/amethyst/amethyst/pull/1213
@@ -84,6 +91,7 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 [#1371]: https://github.com/amethyst/amethyst/pull/1371
 [#1373]: https://github.com/amethyst/amethyst/pull/1373
 [#1388]: https://github.com/amethyst/amethyst/pull/1388
+[#1390]: https://github.com/amethyst/amethyst/pull/1390
 [#1397]: https://github.com/amethyst/amethyst/pull/1397
 [#1404]: https://github.com/amethyst/amethyst/pull/1404
 [#1408]: https://github.com/amethyst/amethyst/pull/1408
@@ -103,6 +111,9 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 [#1442]: https://github.com/amethyst/amethyst/pull/1442
 [#1469]: https://github.com/amethyst/amethyst/pull/1469
 [#1481]: https://github.com/amethyst/amethyst/pull/1481
+[#1480]: https://github.com/amethyst/amethyst/pull/1480
+[#1499]: https://github.com/amethyst/amethyst/pull/1499
+[#1501]: https://github.com/amethyst/amethyst/pull/1501
 
 ## [0.10.0] - 2018-12
 
