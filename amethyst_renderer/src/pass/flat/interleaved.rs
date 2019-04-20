@@ -44,7 +44,7 @@ use super::*;
 /// # Type Parameters
 ///
 /// * `V`: `VertexFormat`
-/// * `N`: `RealBound` (f32, f64)
+/// * `N`: `RealField` (f32, f64)
 #[derive(Derivative, Clone, Debug, PartialEq)]
 #[derivative(Default(bound = "V: Query<(Position, TexCoord)>, Self: Pass"))]
 pub struct DrawFlat<V, N> {

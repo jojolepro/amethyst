@@ -56,7 +56,7 @@ static ATTRIBUTES: [Attributes<'static>; 3] = [
 ///
 /// # Type Parameters:
 ///
-/// * `N`: `RealBound` (f32, f64)
+/// * `N`: `RealField` (f32, f64)
 #[derive(Derivative, Clone, Debug, PartialEq)]
 #[derivative(Default)]
 pub struct DrawShadedSeparate<N> {

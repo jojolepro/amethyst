@@ -38,7 +38,7 @@ pub(crate) struct VertexArgs {
 ///
 /// # Type Parameters:
 ///
-/// * `N`: `RealBound` (f32, f64)
+/// * `N`: `RealField` (f32, f64)
 #[derive(Clone, Debug)]
 pub struct DrawSkybox<N> {
     mesh: Option<Mesh>,

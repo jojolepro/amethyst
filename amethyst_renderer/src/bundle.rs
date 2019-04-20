@@ -26,7 +26,7 @@ use crate::{
 ///
 /// # Type Parameters:
 ///
-/// * `N`: `RealBound` (f32, f64)
+/// * `N`: `RealField` (f32, f64)
 pub struct RenderBundle<'a, B, P, N>
 where
     B: PipelineBuild<Pipeline = P>,

@@ -5,6 +5,7 @@ use specs::prelude::{
     ComponentEvent, Entities, Join, ReadExpect, ReadStorage, ReaderId, Resources, System,
     WriteStorage,
 };
+use nalgebra::{self as na, Matrix4};
 
 use crate::transform::{HierarchyEvent, Parent, ParentHierarchy, Transform};
 
@@ -37,15 +38,30 @@ impl<'a> System<'a> for TransformSystem {
         Entities<'a>,
         ReadExpect<'a, ParentHierarchy>,
         WriteStorage<'a, Transform<f32>>,
+        WriteStorage<'a, Transform<f64>>,
         ReadStorage<'a, Parent>,
     );
-    fn run(&mut self, (entities, hierarchy, mut locals, parents): Self::SystemData) {
+    fn run(&mut self, (entities, hierarchy, mut locals, mut double_locals, parents): Self::SystemData) {
         #[cfg(feature = "profiler")]
         profile_scope!("transform_system");
 
         self.local_modified.clear();
 
         locals
+            .channel()
+            .read(
+                self.locals_events_id.as_mut().expect(
+                    "`TransformSystem::setup` was not called before `TransformSystem::run`",
+                ),
+            )
+            .for_each(|event| match event {
+                ComponentEvent::Inserted(id) | ComponentEvent::Modified(id) => {
+                    self.local_modified.add(*id);
+                }
+                ComponentEvent::Removed(_id) => {}
+            });
+
+        double_locals
             .channel()
             .read(
                 self.locals_events_id.as_mut().expect(
@@ -78,17 +94,32 @@ impl<'a> System<'a> for TransformSystem {
         }
 
         let mut modified = vec![];
+
         // Compute transforms without parents.
         for (entity, _, local, _) in
             (&*entities, &self.local_modified, &mut locals, !&parents).join()
         {
             modified.push(entity.id());
             local.global_matrix = local.matrix();
+
             debug_assert!(
                 local.is_finite(),
                 format!("Entity {:?} had a non-finite `Transform`", entity)
             );
         }
+
+        for (entity, _, local, _) in
+            (&*entities, &self.local_modified, &mut double_locals, !&parents).join()
+        {
+            modified.push(entity.id());
+            local.global_matrix = local.matrix();
+
+            debug_assert!(
+                local.is_finite(),
+                format!("Entity {:?} had a non-finite `Transform`", entity)
+            );
+        }
+
         modified.into_iter().for_each(|id| {
             self.local_modified.add(id);
         });
@@ -97,27 +128,43 @@ impl<'a> System<'a> for TransformSystem {
         // Compute transforms with parents.
         for entity in hierarchy.all() {
             let self_dirty = self.local_modified.contains(entity.id());
-            if let (Some(parent), Some(local)) = (parents.get(*entity), locals.get(*entity)) {
+
+            let local_matrix: Matrix4<f64> = {
+                if let Some(local) = locals.get(*entity) {
+                    na::convert(local.matrix())
+                } else {
+                    double_locals
+                        .get(*entity)
+                        .expect("Entity is missing local `Transform`")
+                        .matrix()
+                }
+            };
+
+            if let Some(parent) = parents.get(*entity) {
                 let parent_dirty = self.local_modified.contains(parent.entity.id());
                 if parent_dirty || self_dirty {
-                    let combined_transform = if let Some(parent_global) = locals.get(parent.entity)
+                    let combined_transform: Matrix4<f64> = if let Some(parent_global) = locals.get(parent.entity)
                     {
-                        (parent_global.global_matrix * local.matrix())
+                        (na::convert::<Matrix4<f32>, Matrix4<f64>>(parent_global.global_matrix) * local_matrix)
+                    } else if let Some(parent_global) = double_locals.get(parent.entity) {
+                        (parent_global.global_matrix * local_matrix)
                     } else {
-                        local.matrix()
+                        local_matrix
                     };
                     self.local_modified.add(entity.id());
                     matrix_changes.push((entity.clone(), combined_transform));
                 }
             }
         }
+
         matrix_changes.into_iter().for_each(|(e, m)| {
-            locals
-                .get_mut(e)
-                .expect(
-                    "unreachable: We know this entity has a local because is was just modified.",
-                )
-                .global_matrix = m
+            if let Some(local) = locals.get_mut(e) {
+                local.global_matrix = na::convert(m);
+            };
+                
+            if let Some(double_local) = double_locals.get_mut(e) {
+                double_local.global_matrix = m;
+            };
         });
     }
 
@@ -133,7 +180,7 @@ impl<'a> System<'a> for TransformSystem {
 
 #[cfg(test)]
 mod tests {
-    use nalgebra::{Matrix4, Quaternion, Real, Unit, Vector3};
+    use nalgebra::{Matrix4, Quaternion, RealField, Unit, Vector3};
     use shred::RunNow;
     use specs::prelude::{Builder, World};
     use specs_hierarchy::{Hierarchy, HierarchySystem};
@@ -165,7 +212,7 @@ mod tests {
         (world, hs, ts)
     }
 
-    fn together<N: Real>(global_matrix: Matrix4<N>, local_matrix: Matrix4<N>) -> Matrix4<N> {
+    fn together<N: RealField>(global_matrix: Matrix4<N>, local_matrix: Matrix4<N>) -> Matrix4<N> {
         global_matrix * local_matrix
     }
 

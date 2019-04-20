@@ -35,7 +35,7 @@ pub struct SpriteVisibility {
 ///
 /// # Type Parameters:
 ///
-/// * `N`: `RealBound` (f32, f64)
+/// * `N`: `RealField` (f32, f64)
 #[derive(Default)]
 pub struct SpriteVisibilitySortingSystem<N: RealField> {
     centroids: Vec<Internals<N>>,

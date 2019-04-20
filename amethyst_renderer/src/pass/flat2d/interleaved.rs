@@ -40,7 +40,7 @@ use super::*;
 ///
 /// # Type Parameters:
 ///
-/// * `N`: `RealBound` (f32, f64)
+/// * `N`: `RealField` (f32, f64)
 #[derive(Derivative, Clone, Debug)]
 #[derivative(Default(bound = "Self: Pass"))]
 pub struct DrawFlat2D<N>

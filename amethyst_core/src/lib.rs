@@ -9,8 +9,6 @@ compile_error!("the cfg flag \"no_threading\" is required when building for emsc
 extern crate serde;
 #[macro_use]
 extern crate getset;
-#[macro_use]
-extern crate derive_new;
 
 pub use approx;
 pub use nalgebra;
