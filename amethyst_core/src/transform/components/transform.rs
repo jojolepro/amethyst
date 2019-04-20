@@ -616,13 +616,15 @@ mod tests {
         );
 
         // check Mat(first * second) == Mat(first) * Mat(second)
-        assert_ulps_eq!(
+        assert_relative_eq!(
             first.matrix() * second.matrix(),
             first.concat(&second).matrix(),
+            max_relative = 0.0000000000001,
         );
-        assert_ulps_eq!(
+        assert_relative_eq!(
             first.matrix() * second.matrix(),
             first.concat(&second).matrix(),
+            max_relative = 0.0000000000001,
         );
     }
 

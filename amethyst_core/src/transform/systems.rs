@@ -189,7 +189,10 @@ mod tests {
     use specs::prelude::{Builder, World};
     use specs_hierarchy::{Hierarchy, HierarchySystem};
 
-    use crate::transform::{Parent, Transform, TransformSystem};
+    use crate::{
+        transform::{Parent, Transform, TransformSystem},
+        approx::assert_relative_eq,
+    };
 
     // If this works, then all other tests should work.
     #[test]
@@ -311,9 +314,9 @@ mod tests {
             .get(e2)
             .unwrap()
             .clone();
-        let a3 = e2_transform.global_matrix();
+        let a3 = *e2_transform.global_matrix();
         let a4 = together(*a1, local2.matrix());
-        assert_eq!(*a3, a4);
+        assert_relative_eq!(a3, a4, max_relative = 0.0000001);
 
 
 <<<<<<< HEAD
