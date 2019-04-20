@@ -18,6 +18,7 @@ pub struct TransformSystem {
     local_modified: BitSet,
 
     locals_events_id: Option<ReaderId<ComponentEvent>>,
+    double_locals_events_id: Option<ReaderId<ComponentEvent>>,
 
     parent_events_id: Option<ReaderId<HierarchyEvent>>,
 }
@@ -27,6 +28,7 @@ impl TransformSystem {
     pub fn new() -> TransformSystem {
         TransformSystem {
             locals_events_id: None,
+            double_locals_events_id: None,
             parent_events_id: None,
             local_modified: BitSet::default(),
         }
@@ -64,7 +66,7 @@ impl<'a> System<'a> for TransformSystem {
         double_locals
             .channel()
             .read(
-                self.locals_events_id.as_mut().expect(
+                self.double_locals_events_id.as_mut().expect(
                     "`TransformSystem::setup` was not called before `TransformSystem::run`",
                 ),
             )
@@ -173,8 +175,10 @@ impl<'a> System<'a> for TransformSystem {
         Self::SystemData::setup(res);
         let mut hierarchy = res.fetch_mut::<ParentHierarchy>();
         let mut locals = WriteStorage::<Transform<f32>>::fetch(res);
+        let mut double_locals = WriteStorage::<Transform<f64>>::fetch(res);
         self.parent_events_id = Some(hierarchy.track());
         self.locals_events_id = Some(locals.register_reader());
+        self.double_locals_events_id = Some(double_locals.register_reader());
     }
 }
 
@@ -289,11 +293,6 @@ mod tests {
         local3.set_xyz(5.0, 5.0, 5.0);
         local3.set_rotation(Unit::new_normalize(Quaternion::new(1.0, 0.5, 0.5, 0.0)));
 
-        let e3 = world
-            .create_entity()
-            .with(local3.clone())
-            .with(Parent { entity: e2 })
-            .build();
 
         hs.run_now(&mut world.res);
         system.run_now(&mut world.res);
@@ -317,6 +316,7 @@ mod tests {
         assert_eq!(*a3, a4);
 
 
+<<<<<<< HEAD
         let e3_transform = world
             .read_storage::<Transform<f32>>()
             .get(e3)
@@ -324,7 +324,23 @@ mod tests {
             .clone();
         let a3 = e3_transform.global_matrix();
         let a4 = together(*a3, local3.matrix());
+=======
+        // let e3 = world
+        //     .create_entity()
+        //     .with(local3.clone())
+        //     .with(Parent { entity: e2 })
+        //     .build();
+        
+        // let e3_transform = world
+        //     .read_storage::<Transform<f32>>()
+        //     .get(e3)
+        //     .unwrap()
+        //     .clone();
+        // let a3 = e3_transform.global_matrix();
+        // let a4 = together(*a3, local3.matrix());
+>>>>>>> c5d71db4... Fix transform system reader
         // assert_eq!(*a3, a4);
+
         // let global_matrix1 = {
         //     // First entity (top level parent)
         //     let global_matrix1 = local1.global_matrix();
@@ -392,7 +408,7 @@ mod tests {
             global_matrix1
         };
 
-        let global_matrix2 = {
+        {
             let global_matrix2 = local2.global_matrix();
             let a1 = global_matrix2;
             let a2 = together(*global_matrix1, local2.matrix());
