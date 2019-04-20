@@ -27,7 +27,7 @@ pub struct Visibility {
 /// Determine what entities are visible to the camera, and which are not. Will also sort transparent
 /// entities back to front based on distance from camera.
 ///
-/// Note that this should run after `GlobalTransform` has been updated for the current frame, and
+/// Note that this should run after `Transform` has been updated for the current frame, and
 /// before rendering occurs.
 pub struct VisibilitySortingSystem<N: RealField> {
     centroids: Vec<Internals<N>>,

@@ -30,7 +30,7 @@ pub struct SpriteVisibility {
 /// The sprite render pass should draw all sprites without semi-transparent pixels, then draw the
 /// sprites with semi-transparent pixels from far to near.
 ///
-/// Note that this should run after `GlobalTransform` has been updated for the current frame, and
+/// Note that this should run after `Transform` has been updated for the current frame, and
 /// before rendering occurs.
 ///
 /// # Type Parameters:
