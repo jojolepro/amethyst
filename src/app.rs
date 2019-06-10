@@ -6,6 +6,7 @@ use crate::shred::Resource;
 use derivative::Derivative;
 use log::{debug, info, log_enabled, trace, Level};
 use rayon::ThreadPoolBuilder;
+use sentry::integrations::panic::register_panic_handler;
 use winit::Event;
 
 #[cfg(feature = "profiler")]
@@ -25,7 +26,7 @@ use crate::{
         prelude::{Component, Read, World, Write},
     },
     error::Error,
-    game_data::DataInit,
+    game_data::{DataDispose, DataInit},
     state::{State, StateData, StateMachine, TransEvent},
     state_event::{StateEvent, StateEventReader},
     ui::UiEvent,
@@ -46,7 +47,7 @@ use crate::{
 #[derivative(Debug)]
 pub struct CoreApplication<'a, T, E = StateEvent, R = StateEventReader>
 where
-    T: 'static,
+    T: DataDispose + 'static,
     E: 'static,
 {
     /// The world
@@ -132,7 +133,7 @@ pub type Application<'a, T> = CoreApplication<'a, T, StateEvent, StateEventReade
 
 impl<'a, T, E, R> CoreApplication<'a, T, E, R>
 where
-    T: 'static,
+    T: DataDispose + 'static,
     E: Clone + Send + Sync + 'static,
 {
     /// Creates a new Application with the given initial game state.
@@ -220,6 +221,14 @@ where
     where
         for<'b> R: EventReader<'b, Event = E>,
     {
+        let _sentry_guard = if let Some(dsn) = option_env!("SENTRY_DSN") {
+            let guard = sentry::init(dsn);
+            register_panic_handler();
+            Some(guard)
+        } else {
+            None
+        };
+
         self.initialize();
         self.world.write_resource::<Stopwatch>().start();
         while self.states.is_running() {
@@ -254,7 +263,7 @@ where
         if self.ignore_window_close {
             false
         } else {
-            use crate::renderer::WindowEvent;
+            use crate::winit::WindowEvent;
             let world = &mut self.world;
             let reader_id = &mut self.event_reader_id;
             world.exec(|ev: Read<'_, EventChannel<Event>>| {
@@ -352,7 +361,8 @@ where
             {
                 self.world.write_resource::<Time>().finish_fixed_update();
             }
-
+        }
+        {
             #[cfg(feature = "profiler")]
             profile_scope!("update");
             self.states
@@ -372,13 +382,15 @@ where
     /// Cleans up after the quit signal is received.
     fn shutdown(&mut self) {
         info!("Engine is shutting down");
-
-        // Placeholder.
+        self.data.dispose(&mut self.world);
     }
 }
 
 #[cfg(feature = "profiler")]
-impl<'a, T, E, R> Drop for CoreApplication<'a, T, E, R> {
+impl<'a, T, E, R> Drop for CoreApplication<'a, T, E, R>
+where
+    T: DataDispose,
+{
     fn drop(&mut self) {
         // TODO: Specify filename in config.
         use crate::utils::application_root_dir;
@@ -404,7 +416,7 @@ pub struct ApplicationBuilder<S, T, E, R> {
 
 impl<S, T, E, X> ApplicationBuilder<S, T, E, X>
 where
-    T: 'static,
+    T: DataDispose + 'static,
 {
     /// Creates a new [ApplicationBuilder](struct.ApplicationBuilder.html) instance
     /// that wraps the initial_state. This is the more verbose way of initializing
@@ -477,6 +489,10 @@ where
         info!("Version: {}", env!("CARGO_PKG_VERSION"));
         info!("Platform: {}", env!("VERGEN_TARGET_TRIPLE"));
         info!("Amethyst git commit: {}", env!("VERGEN_SHA"));
+        if let Some(sentry) = option_env!("SENTRY_DSN") {
+            info!("Sentry DSN: {}", sentry);
+        }
+
         let rustc_meta = rustc_version_runtime::version_meta();
         info!(
             "Rustc version: {} {:?}",
@@ -669,8 +685,8 @@ where
     ///
     /// ~~~no_run
     /// use amethyst::prelude::*;
-    /// use amethyst::assets::{Directory, Loader};
-    /// use amethyst::renderer::ObjFormat;
+    /// use amethyst::assets::{Directory, Loader, Handle};
+    /// use amethyst::renderer::{Mesh, formats::mesh::ObjFormat};
     /// use amethyst::ecs::prelude::World;
     ///
     /// let mut game = Application::build("assets/", LoadingState)
@@ -688,8 +704,8 @@ where
     ///
     ///         let loader = data.world.read_resource::<Loader>();
     ///         // Load a teapot mesh from the directory that registered above.
-    ///         let mesh = loader.load_from("teapot", ObjFormat, (), "custom_directory",
-    ///                                     (), &storage);
+    ///         let mesh: Handle<Mesh> =
+    ///             loader.load_from("teapot", ObjFormat, "custom_directory", (), &storage);
     ///     }
     /// }
     /// ~~~
@@ -723,8 +739,8 @@ where
     ///
     /// ~~~no_run
     /// use amethyst::prelude::*;
-    /// use amethyst::assets::{Directory, Loader};
-    /// use amethyst::renderer::ObjFormat;
+    /// use amethyst::assets::{Directory, Loader, Handle};
+    /// use amethyst::renderer::{Mesh, formats::mesh::ObjFormat};
     /// use amethyst::ecs::prelude::World;
     ///
     /// let mut game = Application::build("assets/", LoadingState)
@@ -742,7 +758,7 @@ where
     ///
     ///         let loader = data.world.read_resource::<Loader>();
     ///         // Load a teapot mesh from the directory that registered above.
-    ///         let mesh = loader.load("teapot", ObjFormat, (), (), &storage);
+    ///         let mesh: Handle<Mesh> = loader.load("teapot", ObjFormat, (), &storage);
     ///     }
     /// }
     /// ~~~

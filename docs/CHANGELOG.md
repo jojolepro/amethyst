@@ -36,9 +36,18 @@ it is attached to. ([#1282])
 * Adding support for AMETHYST_NUM_THREADS environment variable to control size of the threads pool used by thread_pool_builder.
 * Add `Input` variant to `StateEvent`. ([#1478])
 * Support type parameters in `EventReader` derive. ([#1478])
+* Derive `Debug`, `PartialEq`, `Eq` for `Source`. ([#1591])
+* Added `events` example which demonstrates working even reader and writer in action. ([#1538])
+*  Implement builder like functionality for `AnimationSet` and `AnimationControlSet` ([#1568])
+* Add `get_mouse_button` and `is_mouse_button_down` utility functions to amethyst_input. ([#1582])
+- Add amethyst_input::Axis::MouseWheel ([#1642])
+- Add amethyst_input::BindingError::MouseWheelAlreadyBound ([#1642])
+- Add amethyst_input::InputHandler::send_frame_begin ([#1642])
+- Add amethyst_input::InputHandler::mouse_wheel_value ([#1642])
 
 ### Changed
 
+* `#[derive(PrefabData)]` now supports enums as well as structs
 * Make `frame_limiter::do_sleep` calculate the amount of time to sleep instead of calling `sleep(0)` ([#1446])
 * Make `application_root_dir` return a `Result<Path>` instead of a `String` ([#1213])
 * Remove unnecessary texture coordinates offset in `Sprite::from_pixel_values` ([#1267])
@@ -73,9 +82,30 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 * Removed `NetEvent::Custom` and added `NetEvent::Packet(NetPacket)` ([#1523])
 * Fixed update is no longer frame rate dependent ([#1516])
 * Display the syntax error when failing to parse sprite sheets  ([#1526])
+* Added generic parameter type to `Transform` to configure floating point precision (then removed). ([#1334]) ([#1584])
+* `NetConnection` is automatically created when client starts sends data to server. ([#1539])
+* User will receive `NetEvent::Connected` on new connection and `NetEvent::Disconnected` on disconnect. ([#1539])
+* Added a `pivot` field to `UiTransform`. ([#1571])
+* Fix fly_camera example initial camera and cube position. ([#1582])
+* Add to fly_camera example code to release and capture back mouse input, and to show and hide cursor. ([#1582])
+* Updated `rodio` to `0.9`. ([#1683])
 
+#### Rendy support
+
+* Brand new way to define rendering pipelines.
+* OpenGL support temporarily dropped, Vulkan and Metal support added.
+* Normalized texel coordinates are now in Vulkan convention (top-left 0.0, bottom-right 1.0), mirrored vertically compared to old one.
+* World space is now Y-up consistently for all projections (2D and 3D).
+* `Format` type no longer has associated `Options` and is now object-safe. It is expected to carry required options itself.
+* `Format` now supports tag-based deserialization, it is no longer required to provide specific format to prefab type.
+* Combined input axis/action generics into single type.
+* `Material` is now an asset. Must be turned into handle before putting on an entity.
+* Removed `Flipped` component. Use `flip_horizontal` and `flip_vertical` sprite property instead.
 
 ### Removed
+
+- Removed all `NetEvent's` because they were not used. ([#1539])
+- Removed filter logic, because it didn't do anything, will be added back in a later version (NetFilter, FilterConnected). ([#1539])
 
 ### Fixed
 
@@ -86,6 +116,7 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 * Fix omission in `PosNormTangTex` documentation. ([#1371])
 * Fix division by zero in vertex data building ([#1481])
 * Fix tuple index generation on `PrefabData` and `EventReader` proc macros. ([#1501])
+* Avoid segmentation fault on Windows when using `AudioBundle` in `amethyst_test`. ([#1595], [#1599])
 
 [#1114]: https://github.com/amethyst/amethyst/pull/1114
 [#1213]: https://github.com/amethyst/amethyst/pull/1213
@@ -98,6 +129,7 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 [#1281]: https://github.com/amethyst/amethyst/pull/1281
 [#1302]: https://github.com/amethyst/amethyst/pull/1302
 [#1328]: https://github.com/amethyst/amethyst/pull/1328
+[#1334]: https://github.com/amethyst/amethyst/pull/1334
 [#1356]: https://github.com/amethyst/amethyst/pull/1356
 [#1363]: https://github.com/amethyst/amethyst/pull/1363
 [#1365]: https://github.com/amethyst/amethyst/pull/1365
@@ -137,6 +169,17 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 [#1523]: https://github.com/amethyst/amethyst/pull/1523
 [#1524]: https://github.com/amethyst/amethyst/pull/1524
 [#1526]: https://github.com/amethyst/amethyst/pull/1526
+[#1538]: https://github.com/amethyst/amethyst/pull/1538
+[#1539]: https://github.com/amethyst/amethyst/pull/1543
+[#1568]: https://github.com/amethyst/amethyst/pull/1568
+[#1571]: https://github.com/amethyst/amethyst/pull/1571
+[#1584]: https://github.com/amethyst/amethyst/pull/1584
+[#1591]: https://github.com/amethyst/amethyst/pull/1591
+[#1582]: https://github.com/amethyst/amethyst/pull/1582
+[#1595]: https://github.com/amethyst/amethyst/issues/1595
+[#1599]: https://github.com/amethyst/amethyst/pull/1599
+[#1642]: https://github.com/amethyst/amethyst/pull/1642
+[#1683]: https://github.com/amethyst/amethyst/pull/1683
 
 ## [0.10.0] - 2018-12
 

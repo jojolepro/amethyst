@@ -2,7 +2,7 @@
 
 use std::{clone::Clone, net::SocketAddr, thread};
 
-use amethyst_core::ecs::{Join, Resources, System, SystemData, WriteStorage};
+use amethyst_core::ecs::{Entities, Join, Resources, System, SystemData, WriteStorage};
 
 use crossbeam_channel::{Receiver, Sender};
 use laminar::{Packet, SocketEvent};
@@ -10,12 +10,12 @@ use log::{error, warn};
 use serde::{de::DeserializeOwned, Serialize};
 
 use super::{
-    deserialize_event,
     error::Result,
-    send_event,
+    serialize_event, serialize_packet,
     server::{Host, ServerConfig},
-    ConnectionState, NetConnection, NetEvent, NetFilter,
+    ConnectionState, NetConnection, NetEvent,
 };
+use std::io::{Error, ErrorKind};
 
 enum InternalSocketEvent<E> {
     SendEvents {
@@ -25,28 +25,28 @@ enum InternalSocketEvent<E> {
     Stop,
 }
 
-// If a client sends both a connect event and other events,
-// only the connect event will be considered valid and all others will be lost.
-/// The System managing the network state and connections.
-/// The T generic parameter corresponds to the network event type.
-/// Receives events and filters them.
-/// Received events will be inserted into the NetReceiveBuffer resource.
-/// To send an event, add it to the NetSendBuffer resource.
+/// The System managing the network state from `NetConnections`.
 ///
-/// If both a connection (Connect or Connected) event is received at the same time as another event from the same connection,
-/// only the connection event will be considered and rest will be filtered out.
-// TODO: add Unchecked Event type list. Those events will be let pass the client connected filter (Example: NetEvent::Connect).
-// Current behaviour: hardcoded passthrough of Connect and Connected events.
+/// This system has a few responsibilities.
+///
+/// - Reading to send packets from `NetConnection` and sending those over to some remote endpoint.
+/// - Listening for incoming packets and queue the received packets (`NetEvent::Packet(...)`) on the accompanying `NetConnection`.
+///
+/// This system is able to create a `NetConnection` and add those to the world when a new client connects.
+/// (This behavior might not be desired and can therefore be deactivated in the configuration).
+///
+/// In both cases when a client connects and disconnects a `NetEvent::Connected` or `NetEvent::Disconnected` will be queued on accompanying `NetConnection`
+///
+/// - `T` corresponds to the network event type.
 pub struct NetSocketSystem<E: 'static>
 where
     E: PartialEq,
 {
-    /// The list of filters applied on the events received.
-    pub filters: Vec<Box<dyn NetFilter<E>>>,
     // sender on which you can queue packets to send to some endpoint.
     event_sender: Sender<InternalSocketEvent<E>>,
     // receiver from which you can read received packets.
     event_receiver: Receiver<laminar::SocketEvent>,
+    // the configuration with which you can configure the network behaviour.
     config: ServerConfig,
 }
 
@@ -55,7 +55,7 @@ where
     E: Serialize + PartialEq + Send + 'static,
 {
     /// Creates a `NetSocketSystem` and binds the Socket on the ip and port added in parameters.
-    pub fn new(config: ServerConfig, filters: Vec<Box<dyn NetFilter<E>>>) -> Result<Self> {
+    pub fn new(config: ServerConfig) -> Result<Self> {
         if config.udp_socket_addr.port() < 1024 {
             // Just warning the user here, just in case they want to use the root port.
             warn!("Using a port below 1024, this will require root permission and should not be done.");
@@ -69,7 +69,6 @@ where
         let event_sender = NetSocketSystem::<E>::start_sending(udp_send_handle);
 
         Ok(NetSocketSystem {
-            filters,
             event_sender,
             event_receiver: udp_receive_handle,
             config,
@@ -85,11 +84,24 @@ where
                 match control_event {
                     InternalSocketEvent::SendEvents { target, events } => {
                         for ev in events {
-                            match ev {
-                                NetEvent::Packet(packet) => {
-                                    send_event(packet, target, &sender);
+                            let serialize_result = match ev {
+                                NetEvent::Packet(packet) => serialize_packet(packet, target),
+                                NetEvent::Connected(addr) => serialize_event(ev, addr),
+                                NetEvent::Disconnected(addr) => serialize_event(ev, addr),
+                                NetEvent::__Nonexhaustive => {
+                                    Err(Error::new(ErrorKind::Other, "Net event does not exist.")
+                                        .into())
                                 }
-                                _ => { /* TODO, handle connect, disconnect etc. */ }
+                            };
+
+                            match serialize_result {
+                                Ok(packet) => match sender.send(packet) {
+                                    Ok(_qty) => {}
+                                    Err(e) => {
+                                        error!("Failed to send data to network socket: {}", e)
+                                    }
+                                },
+                                Err(e) => error!("Cannot serialize packet. Reason: {}", e),
                             }
                         }
                     }
@@ -108,9 +120,9 @@ impl<'a, E> System<'a> for NetSocketSystem<E>
 where
     E: Send + Sync + Serialize + Clone + DeserializeOwned + PartialEq + 'static,
 {
-    type SystemData = (WriteStorage<'a, NetConnection<E>>);
+    type SystemData = (WriteStorage<'a, NetConnection<E>>, Entities<'a>);
 
-    fn run(&mut self, mut net_connections: Self::SystemData) {
+    fn run(&mut self, (mut net_connections, entities): Self::SystemData) {
         for connection in (&mut net_connections).join() {
             match connection.state {
                 ConnectionState::Connected | ConnectionState::Connecting => {
@@ -132,27 +144,45 @@ where
         for (counter, socket_event) in self.event_receiver.try_iter().enumerate() {
             match socket_event {
                 SocketEvent::Packet(packet) => {
-                    // Get the event
-                    match deserialize_event::<E>(packet.payload()) {
+                    let from_addr = packet.addr();
+
+                    match NetEvent::<E>::from_packet(packet) {
                         Ok(event) => {
-                            // Get the NetConnection from the source
                             for connection in (&mut net_connections).join() {
-                                if connection.target_addr == packet.addr() {
-                                    connection
-                                        .receive_buffer
-                                        .single_write(NetEvent::Packet(event.clone()));
-                                };
+                                if connection.target_addr == from_addr {
+                                    connection.receive_buffer.single_write(event.clone());
+                                }
                             }
                         }
                         Err(e) => error!(
                             "Failed to deserialize an incoming network event: {} From source: {:?}",
-                            e,
-                            packet.addr()
+                            e, from_addr
                         ),
-                    };
+                    }
                 }
-                SocketEvent::Connect(_) => { /* TODO: Update connection status */ }
-                SocketEvent::Timeout(_) => { /* TODO: Update connection status */ }
+                SocketEvent::Connect(addr) => {
+                    if self.config.create_net_connection_on_connect {
+                        let mut connection: NetConnection<E> = NetConnection::new(addr);
+                        connection
+                            .receive_buffer
+                            .single_write(NetEvent::Connected(addr));
+
+                        entities
+                            .build_entity()
+                            .with(connection, &mut net_connections)
+                            .build();
+                    }
+                }
+                SocketEvent::Timeout(timeout_addr) => {
+                    for connection in (&mut net_connections).join() {
+                        if connection.target_addr == timeout_addr {
+                            // we can't remove the entity from the world here because it could still have events in it's buffer.
+                            connection
+                                .receive_buffer
+                                .single_write(NetEvent::Disconnected(timeout_addr));
+                        }
+                    }
+                }
             };
 
             // this will prevent our system to be stuck in the iterator.
