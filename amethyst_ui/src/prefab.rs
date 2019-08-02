@@ -32,8 +32,6 @@ use crate::{
 #[serde(default)]
 #[derivative(Default)]
 pub struct UiTransformBuilder<G> {
-    /// An identifier. Serves no purpose other than to help you distinguish between UI elements.
-    pub id: String,
     /// X coordinate
     pub x: f32,
     /// Y coordinate
@@ -78,15 +76,6 @@ pub struct UiTransformBuilder<G> {
 }
 
 impl<G> UiTransformBuilder<G> {
-    /// Set id
-    pub fn with_id<S>(mut self, id: S) -> Self
-    where
-        S: ToString,
-    {
-        self.id = id.to_string();
-        self
-    }
-
     /// Set position
     pub fn with_position(mut self, x: f32, y: f32, z: f32) -> Self {
         self.x = x;
@@ -153,7 +142,6 @@ where
         _: &[Entity],
     ) -> Result<(), Error> {
         let mut transform = UiTransform::new(
-            self.id.clone(),
             self.anchor.clone(),
             self.pivot.clone(),
             self.x,
