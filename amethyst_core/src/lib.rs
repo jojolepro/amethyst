@@ -40,7 +40,7 @@ pub use self::{
     hidden::{Hidden, HiddenPropagate},
     hide_system::HideHierarchySystem,
     named::{Named, WithNamed},
-    system_desc::SystemDesc,
+    dispatcher_action::DispatcherAction,
 };
 
 pub mod bundle;
@@ -53,7 +53,7 @@ mod event;
 mod hidden;
 mod hide_system;
 mod named;
-mod system_desc;
+mod dispatcher_action;
 mod system_ext;
 
 /// A rayon thread pool wrapped in an `Arc`. This should be used as resource in `World`.

@@ -7,7 +7,7 @@ use crate::{
     bundle::SystemBundle,
     ecs::prelude::{DispatcherBuilder, World},
     transform::*,
-    SystemDesc,
+    DispatcherAction,
 };
 
 /// Transform bundle

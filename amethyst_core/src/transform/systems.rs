@@ -8,7 +8,7 @@ use crate::{
             World, WriteStorage,
         },
     },
-    SystemDesc,
+    DispatcherAction,
 };
 
 use crate::transform::{HierarchyEvent, Parent, ParentHierarchy, Transform};
@@ -20,8 +20,8 @@ use thread_profiler::profile_scope;
 #[derive(Default, Debug)]
 pub struct TransformSystemDesc;
 
-impl<'a, 'b> SystemDesc<'a, 'b, TransformSystem> for TransformSystemDesc {
-    fn build(self, world: &mut World) -> TransformSystem {
+impl DispatcherAction for TransformSystemDesc {
+    fn build(self, world: &mut World, dispatcher: DispatcherBuilder<'a, 'b>) {
         <TransformSystem as System<'_>>::SystemData::setup(world);
 
         let mut hierarchy = world.fetch_mut::<ParentHierarchy>();
@@ -29,7 +29,7 @@ impl<'a, 'b> SystemDesc<'a, 'b, TransformSystem> for TransformSystemDesc {
         let parent_events_id = hierarchy.track();
         let locals_events_id = locals.register_reader();
 
-        TransformSystem::new(locals_events_id, parent_events_id)
+        dispatcher.TransformSystem::new(locals_events_id, parent_events_id)
     }
 }
 
