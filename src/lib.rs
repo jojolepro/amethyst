@@ -45,15 +45,23 @@
 //!     }
 //! }
 //!
-//! fn main() {
-//!     let mut game = Application::new("assets/", GameState, GameDataBuilder::default())
-//!         .expect("Fatal error");
+//! fn main() -> amethyst::Result<()> {
+//!     let assets_dir = "assets/";
+//!     let mut game = Application::new(assets_dir, GameState, GameDataBuilder::default())?;
 //!     game.run();
+//!     Ok(())
 //! }
 //! ```
 
 #![doc(html_logo_url = "https://amethyst.rs/brand/logo-standard.svg")]
-#![warn(missing_docs, rust_2018_idioms, rust_2018_compatibility)]
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    rust_2018_idioms,
+    rust_2018_compatibility
+)]
+#![warn(clippy::all)]
+#![allow(clippy::new_without_default)]
 
 #[cfg(feature = "animation")]
 pub use amethyst_animation as animation;

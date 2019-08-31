@@ -2,7 +2,7 @@
 
 use std::{clone::Clone, net::SocketAddr, thread};
 
-use amethyst_core::ecs::{Entities, Join, Resources, System, SystemData, WriteStorage};
+use amethyst_core::ecs::{Entities, Join, System, WriteStorage};
 
 use crossbeam_channel::{Receiver, Sender};
 use laminar::{Packet, SocketEvent};
@@ -38,6 +38,7 @@ enum InternalSocketEvent<E> {
 /// In both cases when a client connects and disconnects a `NetEvent::Connected` or `NetEvent::Disconnected` will be queued on accompanying `NetConnection`
 ///
 /// - `T` corresponds to the network event type.
+#[allow(missing_debug_implementations)]
 pub struct NetSocketSystem<E: 'static>
 where
     E: PartialEq,
@@ -123,6 +124,9 @@ where
     type SystemData = (WriteStorage<'a, NetConnection<E>>, Entities<'a>);
 
     fn run(&mut self, (mut net_connections, entities): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("net_socket_system");
+
         for connection in (&mut net_connections).join() {
             match connection.state {
                 ConnectionState::Connected | ConnectionState::Connecting => {
@@ -192,9 +196,5 @@ where
                 break;
             }
         }
-    }
-
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
     }
 }

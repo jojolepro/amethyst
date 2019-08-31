@@ -3,8 +3,13 @@
 //! This modules contains an extension trait for the System trait which adds useful transformation
 //! functions.
 
-use crate::ecs::prelude::{Read, System};
-use shred::{RunningTime, SystemData};
+use crate::{
+    ecs::prelude::{Read, System},
+    shred::{RunningTime, SystemData},
+};
+
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
 
 /// Extension functionality associated systems.
 pub trait SystemExt {
@@ -57,18 +62,18 @@ pub trait SystemExt {
     ///     .with(AddNumber(2).pausable(CurrentState::Enabled), "set_number_2", &[])
     ///     .build();
     ///
-    /// dispatcher.setup(&mut world.res);
+    /// dispatcher.setup(&mut world);
     ///
     /// // we only expect the u32 resource to be modified _if_ the system is enabled,
     /// // the system should only be enabled on CurrentState::Enabled.
     ///
     /// *world.write_resource() = 0u32;
-    /// dispatcher.dispatch(&mut world.res);
+    /// dispatcher.dispatch(&mut world);
     /// assert_eq!(1, *world.read_resource::<u32>());
     ///
     /// *world.write_resource() = 0u32;
     /// *world.write_resource() = CurrentState::Enabled;
-    /// dispatcher.dispatch(&mut world.res);
+    /// dispatcher.dispatch(&mut world);
     /// assert_eq!(1 + 2, *world.read_resource::<u32>());
     /// ```
     fn pausable<V: 'static>(self, value: V) -> Pausable<Self, V>
@@ -98,6 +103,7 @@ where
 /// This is created using the [`SystemExt::pausable`] method.
 ///
 /// [`SystemExt::pausable`]: trait.SystemExt.html#tymethod.pausable
+#[derive(Debug)]
 pub struct Pausable<S, V> {
     system: S,
     value: V,
@@ -112,6 +118,9 @@ where
     type SystemData = (Read<'s, V>, S::SystemData);
 
     fn run(&mut self, data: Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("pauseable_system");
+
         if self.value != *data.0 {
             return;
         }

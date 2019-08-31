@@ -1,3 +1,4 @@
+//! Material abstraction submodule.
 use crate::{
     mtl::{Material, StaticTextureSet},
     pod,
@@ -14,7 +15,7 @@ use crate::{
     util,
 };
 use amethyst_assets::{AssetStorage, Handle};
-use amethyst_core::ecs::{Read, Resources, SystemData};
+use amethyst_core::ecs::{Read, SystemData, World};
 use glsl_layout::*;
 
 #[cfg(feature = "profiler")]
@@ -131,9 +132,11 @@ enum MaterialState<B: Backend> {
     },
 }
 
+/// Material ID newtype, preventing users from creating arbitrary `MaterialId`. Represented as a `u32`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MaterialId(u32);
 
+/// Material helper submodule for allocating and binding materials and their associated textures.
 #[derive(Debug)]
 pub struct MaterialSub<B: Backend, T: for<'a> StaticTextureSet<'a>> {
     generation: u32,
@@ -146,9 +149,14 @@ pub struct MaterialSub<B: Backend, T: for<'a> StaticTextureSet<'a>> {
 }
 
 impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
+    /// Create a new `MaterialSub` using the provided rendy `Factory`
     pub fn new(factory: &Factory<B>) -> Result<Self, failure::Error> {
         Ok(Self {
-            layout: set_layout! {factory, [1] UniformBuffer FRAGMENT, [T::len()] CombinedImageSampler FRAGMENT},
+            layout: set_layout! {
+                factory,
+                [1] UniformBuffer hal::pso::ShaderStageFlags::FRAGMENT,
+                [T::len()] CombinedImageSampler hal::pso::ShaderStageFlags::FRAGMENT
+            },
             lookup: util::LookupBuilder::new(),
             allocator: SlotAllocator::new(1024),
             buffers: vec![Self::create_buffer(factory)?],
@@ -167,14 +175,17 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         SlottedBuffer::new(factory, material_step, 1024, hal::buffer::Usage::UNIFORM)
     }
 
+    /// Returns the raw `DescriptorSetLayout` for this environment
     pub fn raw_layout(&self) -> &B::DescriptorSetLayout {
         self.layout.raw()
     }
 
+    /// Increment the internal generation counter.
     pub fn maintain(&mut self) {
         self.generation += self.generation.wrapping_add(1);
     }
 
+    /// Releases any materials not used in the current generation.
     fn collect_unused(&mut self) {
         let cur_generation = self.generation;
         // let allocator = &mut self.allocator;
@@ -191,10 +202,11 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         }
     }
 
+    /// Attempts to insert a new material to this collection.
     fn try_insert(
         &mut self,
         factory: &Factory<B>,
-        res: &Resources,
+        world: &World,
         handle: &Handle<Material>,
     ) -> Option<MaterialState<B>> {
         #[cfg(feature = "profiler")]
@@ -204,15 +216,16 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         let (mat_storage, tex_storage) = <(
             Read<'_, AssetStorage<Material>>,
             Read<'_, AssetStorage<Texture>>,
-        )>::fetch(res);
+        )>::fetch(world);
 
         let mat = mat_storage.get(handle)?;
 
-        if T::textures(mat).any(|t| {
+        let has_tex = T::textures(mat).any(|t| {
             !tex_storage
                 .get(t)
                 .map_or(false, |tex| B::unwrap_texture(tex).is_some())
-        }) {
+        });
+        if has_tex {
             return None;
         }
 
@@ -258,10 +271,11 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         })
     }
 
+    /// Inserts a new material to this collection.
     pub fn insert(
         &mut self,
         factory: &Factory<B>,
-        res: &Resources,
+        world: &World,
         handle: &Handle<Material>,
     ) -> Option<(MaterialId, bool)> {
         #[cfg(feature = "profiler")]
@@ -281,7 +295,7 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
 
         debug_assert!(self.materials.len() >= id);
         let (new_state, loaded) = self
-            .try_insert(factory, res, handle)
+            .try_insert(factory, world, handle)
             .map(|s| (s, true))
             .unwrap_or_else(|| {
                 (
@@ -305,6 +319,7 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         }
     }
 
+    /// Returns `true` if the supplied `MaterialId` is already loaded.
     #[inline]
     pub fn loaded(&self, material_id: MaterialId) -> bool {
         match &self.materials[material_id.0 as usize] {
@@ -313,6 +328,7 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         }
     }
 
+    /// Binds all material descriptor sets and textures contained in this collection.
     #[inline]
     pub fn bind(
         &self,
@@ -322,14 +338,14 @@ impl<B: Backend, T: for<'a> StaticTextureSet<'a>> MaterialSub<B, T> {
         encoder: &mut RenderPassEncoder<'_, B>,
     ) {
         match &self.materials[material_id.0 as usize] {
-            MaterialState::Loaded { set, .. } => {
+            MaterialState::Loaded { set, .. } => unsafe {
                 encoder.bind_graphics_descriptor_sets(
                     pipeline_layout,
                     set_id,
                     Some(set.raw()),
                     std::iter::empty(),
                 );
-            }
+            },
             _ => panic!("Trying to bind unloaded material"),
         };
     }

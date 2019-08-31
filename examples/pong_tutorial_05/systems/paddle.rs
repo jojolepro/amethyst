@@ -1,10 +1,12 @@
 use crate::pong::{Paddle, Side, ARENA_HEIGHT, PADDLE_HEIGHT};
 use amethyst::{
-    core::{math::RealField, transform::Transform},
-    ecs::prelude::{Join, Read, ReadStorage, System, WriteStorage},
+    core::{transform::Transform, SystemDesc},
+    derive::SystemDesc,
+    ecs::prelude::{Join, Read, ReadStorage, System, SystemData, World, WriteStorage},
     input::{InputHandler, StringBindings},
 };
 
+#[derive(SystemDesc)]
 pub struct PaddleSystem;
 
 impl<'s> System<'s> for PaddleSystem {
@@ -21,12 +23,12 @@ impl<'s> System<'s> for PaddleSystem {
                 Side::Right => input.axis_value("right_paddle"),
             };
             if let Some(mv_amount) = movement {
-                let scaled_amount = (1.2 * mv_amount).into();
+                let scaled_amount = 1.2 * mv_amount;
                 let paddle_y = transform.translation().y;
                 transform.set_translation_y(
                     (paddle_y + scaled_amount)
-                        .min((ARENA_HEIGHT - PADDLE_HEIGHT * 0.5).into())
-                        .max((PADDLE_HEIGHT * 0.5).into()),
+                        .min(ARENA_HEIGHT - PADDLE_HEIGHT * 0.5)
+                        .max(PADDLE_HEIGHT * 0.5),
                 );
             }
         }

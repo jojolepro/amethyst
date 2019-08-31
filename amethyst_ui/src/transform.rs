@@ -1,16 +1,19 @@
 use std::marker::PhantomData;
 
-use amethyst_core::ecs::prelude::{
-    Component, DenseVecStorage, Entities, Entity, FlaggedStorage, Join, ReadStorage,
+use amethyst_core::ecs::{
+    prelude::{
+        Component, DenseVecStorage, Entities, Entity, FlaggedStorage, Join, ReadStorage, World,
+    },
+    shred::{ResourceId, SystemData},
 };
 
 use serde::{Deserialize, Serialize};
-use shred_derive::SystemData;
 
 use super::{Anchor, ScaleMode, Stretch};
 
 /// Utility `SystemData` for finding UI entities based on `UiTransform` id
 #[derive(SystemData)]
+#[allow(missing_debug_implementations)]
 pub struct UiFinder<'a> {
     entities: Entities<'a>,
     storage: ReadStorage<'a, UiTransform>,
@@ -128,13 +131,13 @@ impl UiTransform {
 
     /// Renders this UI element by evaluating transform as a percentage of the parent size,
     /// rather than rendering it with pixel units.
-    pub fn as_percent(mut self) -> Self {
+    pub fn into_percent(mut self) -> Self {
         self.scale_mode = ScaleMode::Percent;
         self
     }
 
     /// Sets the opaque variable to false, allowing ui events to go through this ui element.
-    pub fn as_transparent(mut self) -> Self {
+    pub fn into_transparent(mut self) -> Self {
         self.opaque = false;
         self
     }

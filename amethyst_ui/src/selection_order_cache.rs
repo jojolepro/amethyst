@@ -1,11 +1,14 @@
 use amethyst_core::ecs::{
-    storage::GenericReadStorage, Entities, Entity, Join, ReadStorage, System, Write,
+    hibitset::BitSet, storage::GenericReadStorage, Entities, Entity, Join, ReadStorage, System,
+    Write,
 };
 use derive_new::new;
-use hibitset::BitSet;
 use std::{cmp::Ordering, marker::PhantomData};
 
 use crate::{Selectable, Selected};
+
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
 
 // TODO: Optimize by using a tree. Should we enforce tab order = unique? Sort on insert.
 /// A cache sorted by tab order and then by Entity.
@@ -58,6 +61,9 @@ where
         ReadStorage<'a, Selectable<G>>,
     );
     fn run(&mut self, (entities, mut cache, selectables): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("cache_selection_order_system");
+
         {
             let mut rm = vec![];
             cache.cache.retain(|&(_t, entity)| {

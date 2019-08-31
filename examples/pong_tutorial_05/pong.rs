@@ -43,7 +43,7 @@ impl SimpleState for Pong {
         if let Some(mut timer) = self.ball_spawn_timer.take() {
             // If the timer isn't expired yet, substract the time that passed since last update.
             {
-                let time = data.world.res.fetch::<Time>();
+                let time = data.world.fetch::<Time>();
                 timer -= time.delta_seconds();
             }
             if timer <= 0.0 {
@@ -73,7 +73,7 @@ pub struct Paddle {
 impl Paddle {
     fn new(side: Side) -> Paddle {
         Paddle {
-            side: side,
+            side,
             width: PADDLE_WIDTH,
             height: PADDLE_HEIGHT,
         }
@@ -254,5 +254,5 @@ fn initialise_scoreboard(world: &mut World) {
         ))
         .build();
 
-    world.add_resource(ScoreText { p1_score, p2_score });
+    world.insert(ScoreText { p1_score, p2_score });
 }

@@ -1,7 +1,9 @@
 use std::{borrow::Borrow, hash::Hash};
 
-use amethyst_core::ecs::{Read, ReadExpect};
-use shred_derive::SystemData;
+use amethyst_core::ecs::{
+    shred::{ResourceId, SystemData},
+    Read, ReadExpect, World,
+};
 
 use crate::{Asset, AssetStorage, Format, Handle, Loader, Progress};
 
@@ -62,5 +64,16 @@ where
         P: Progress,
     {
         self.loader.load_from_data(data, progress, &*self.storage)
+    }
+
+    /// Asynchronously load an asset from data and return a handle.
+    pub fn load_from_data_async<P, F>(&self, data: F, progress: P) -> Handle<A>
+    where
+        A: Asset,
+        P: Progress,
+        F: FnOnce() -> A::Data + Send + Sync + 'static,
+    {
+        self.loader
+            .load_from_data_async(data, progress, &*self.storage)
     }
 }

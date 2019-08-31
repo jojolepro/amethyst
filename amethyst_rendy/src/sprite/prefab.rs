@@ -1,3 +1,4 @@
+//! 2D Sprite specific prefabs.
 use crate::{
     formats::texture::TexturePrefab,
     sprite::{SpriteRender, SpriteSheet, Sprites},
@@ -89,13 +90,17 @@ impl<'a> PrefabData<'a> for SpriteSheetPrefab {
     }
 }
 
+/// Loaded abstraction for sprite sheets. This is a workaround for prefab humbuggery.
 #[derive(Debug)]
 pub struct SpriteSheetLoadedSet(Mutex<Vec<(Option<String>, Handle<SpriteSheet>)>>);
 
 impl SpriteSheetLoadedSet {
+    /// Push a new spritesheet to this type.
     fn push(&self, data: (Option<String>, Handle<SpriteSheet>)) {
         self.0.lock().unwrap().push(data);
     }
+
+    /// Get the requested [SpriteSheet] via [SpriteSheetReference] from this type
     pub fn get(&self, reference: &SpriteSheetReference) -> Option<Handle<SpriteSheet>> {
         let inner = self.0.lock().unwrap();
         match reference {
@@ -115,10 +120,14 @@ impl Default for SpriteSheetLoadedSet {
     }
 }
 
+/// Prefab humbuggery.
+/// Wraps referencing spritesheets by index or name.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum SpriteSheetReference {
+    /// A `SpriteSheet` referenced by Index
     Index(usize),
+    /// A `SpriteSheet` referenced by Index
     Name(String),
 }
 
@@ -252,9 +261,11 @@ mod tests {
         Texture,
     };
     use amethyst_assets::{Handle, Loader};
-    use amethyst_core::ecs::{Builder, Read, ReadExpect, World};
+    use amethyst_core::ecs::{Builder, Read, ReadExpect, World, WorldExt};
     use rayon::ThreadPoolBuilder;
     use std::sync::Arc;
+
+    use approx::assert_ulps_eq;
 
     fn setup_sprite_world() -> World {
         let mut world = World::new();
@@ -262,10 +273,10 @@ mod tests {
         let loader = Loader::new(".", Arc::new(ThreadPoolBuilder::new().build().unwrap()));
         let tex_storage = AssetStorage::<Texture>::default();
         let ss_storage = AssetStorage::<SpriteSheet>::default();
-        world.add_resource(tex_storage);
-        world.add_resource(ss_storage);
-        world.add_resource(SpriteSheetLoadedSet::default());
-        world.add_resource(loader);
+        world.insert(tex_storage);
+        world.insert(ss_storage);
+        world.insert(SpriteSheetLoadedSet::default());
+        world.insert(loader);
         world
     }
 
@@ -304,6 +315,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn sprite_sheet_prefab() {
         let mut world = setup_sprite_world();
         let texture = add_texture(&mut world);
@@ -398,24 +410,25 @@ mod tests {
 
         assert_eq!(16, sprites.len());
         for sprite in &sprites {
-            assert_eq!(50., sprite.height);
-            assert_eq!(100., sprite.width);
-            assert_eq!([0., 0.], sprite.offsets);
+            assert_ulps_eq!(50., sprite.height);
+            assert_ulps_eq!(100., sprite.width);
+            assert_ulps_eq!(0., sprite.offsets[0]);
+            assert_ulps_eq!(0., sprite.offsets[1]);
         }
-        assert_eq!(0., sprites[0].tex_coords.left);
-        assert_eq!(0.25, sprites[0].tex_coords.right);
-        assert_eq!(0.0, sprites[0].tex_coords.top);
-        assert_eq!(0.25, sprites[0].tex_coords.bottom);
+        assert_ulps_eq!(0., sprites[0].tex_coords.left);
+        assert_ulps_eq!(0.25, sprites[0].tex_coords.right);
+        assert_ulps_eq!(0.0, sprites[0].tex_coords.top);
+        assert_ulps_eq!(0.25, sprites[0].tex_coords.bottom);
 
-        assert_eq!(0.75, sprites[7].tex_coords.left);
-        assert_eq!(1.0, sprites[7].tex_coords.right);
-        assert_eq!(0.25, sprites[7].tex_coords.top);
-        assert_eq!(0.5, sprites[7].tex_coords.bottom);
+        assert_ulps_eq!(0.75, sprites[7].tex_coords.left);
+        assert_ulps_eq!(1.0, sprites[7].tex_coords.right);
+        assert_ulps_eq!(0.25, sprites[7].tex_coords.top);
+        assert_ulps_eq!(0.5, sprites[7].tex_coords.bottom);
 
-        assert_eq!(0.25, sprites[9].tex_coords.left);
-        assert_eq!(0.5, sprites[9].tex_coords.right);
-        assert_eq!(0.5, sprites[9].tex_coords.top);
-        assert_eq!(0.75, sprites[9].tex_coords.bottom);
+        assert_ulps_eq!(0.25, sprites[9].tex_coords.left);
+        assert_ulps_eq!(0.5, sprites[9].tex_coords.right);
+        assert_ulps_eq!(0.5, sprites[9].tex_coords.top);
+        assert_ulps_eq!(0.75, sprites[9].tex_coords.bottom);
 
         let sprites = SpriteGrid {
             texture_width: 192,
@@ -428,24 +441,25 @@ mod tests {
 
         assert_eq!(12, sprites.len());
         for sprite in &sprites {
-            assert_eq!(32.0, sprite.height);
-            assert_eq!(32.0, sprite.width);
-            assert_eq!([0.0, 0.0], sprite.offsets);
+            assert_ulps_eq!(32.0, sprite.height);
+            assert_ulps_eq!(32.0, sprite.width);
+            assert_ulps_eq!(0., sprite.offsets[0]);
+            assert_ulps_eq!(0., sprite.offsets[1]);
         }
-        assert_eq!(0.0, sprites[0].tex_coords.left);
-        assert_eq!(0.16666667, sprites[0].tex_coords.right);
-        assert_eq!(0.0, sprites[0].tex_coords.top);
-        assert_eq!(0.5, sprites[0].tex_coords.bottom);
+        assert_ulps_eq!(0.0, sprites[0].tex_coords.left);
+        assert_ulps_eq!(0.166_666_67, sprites[0].tex_coords.right);
+        assert_ulps_eq!(0.0, sprites[0].tex_coords.top);
+        assert_ulps_eq!(0.5, sprites[0].tex_coords.bottom);
 
-        assert_eq!(0.16666667, sprites[7].tex_coords.left);
-        assert_eq!(0.33333334, sprites[7].tex_coords.right);
-        assert_eq!(0.5, sprites[7].tex_coords.top);
-        assert_eq!(1.0, sprites[7].tex_coords.bottom);
+        assert_ulps_eq!(0.166_666_67, sprites[7].tex_coords.left);
+        assert_ulps_eq!(0.333_333_34, sprites[7].tex_coords.right);
+        assert_ulps_eq!(0.5, sprites[7].tex_coords.top);
+        assert_ulps_eq!(1.0, sprites[7].tex_coords.bottom);
 
-        assert_eq!(0.5, sprites[9].tex_coords.left);
-        assert_eq!(0.6666667, sprites[9].tex_coords.right);
-        assert_eq!(0.5, sprites[9].tex_coords.top);
-        assert_eq!(1.0, sprites[9].tex_coords.bottom);
+        assert_ulps_eq!(0.5, sprites[9].tex_coords.left);
+        assert_ulps_eq!(0.666_666_7, sprites[9].tex_coords.right);
+        assert_ulps_eq!(0.5, sprites[9].tex_coords.top);
+        assert_ulps_eq!(1.0, sprites[9].tex_coords.bottom);
     }
 
     #[test]
@@ -463,20 +477,21 @@ mod tests {
 
         assert_eq!(5, sprites.len());
         for sprite in &sprites {
-            assert_eq!(32.0, sprite.height);
-            assert_eq!(32.0, sprite.width);
-            assert_eq!([0.0, 0.0], sprite.offsets);
+            assert_ulps_eq!(32.0, sprite.height);
+            assert_ulps_eq!(32.0, sprite.width);
+            assert_ulps_eq!(0., sprite.offsets[0]);
+            assert_ulps_eq!(0., sprite.offsets[1]);
         }
 
-        assert_eq!(0.16666667, sprites[0].tex_coords.left);
-        assert_eq!(0.33333334, sprites[0].tex_coords.right);
-        assert_eq!(0.33333334, sprites[0].tex_coords.top);
-        assert_eq!(0.6666667, sprites[0].tex_coords.bottom);
+        assert_ulps_eq!(0.166_666_67, sprites[0].tex_coords.left);
+        assert_ulps_eq!(0.333_333_34, sprites[0].tex_coords.right);
+        assert_ulps_eq!(0.333_333_34, sprites[0].tex_coords.top);
+        assert_ulps_eq!(0.666_666_7, sprites[0].tex_coords.bottom);
 
-        assert_eq!(0.8333333, sprites[4].tex_coords.left);
-        assert_eq!(1.0, sprites[4].tex_coords.right);
-        assert_eq!(0.33333334, sprites[4].tex_coords.top);
-        assert_eq!(0.6666667, sprites[4].tex_coords.bottom);
+        assert_ulps_eq!(0.833_333_3, sprites[4].tex_coords.left);
+        assert_ulps_eq!(1.0, sprites[4].tex_coords.right);
+        assert_ulps_eq!(0.333_333_34, sprites[4].tex_coords.top);
+        assert_ulps_eq!(0.666_666_7, sprites[4].tex_coords.bottom);
     }
 
     #[test]

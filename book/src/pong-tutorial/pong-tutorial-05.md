@@ -43,11 +43,14 @@ Then, we'll create `systems/winner.rs`:
 #
 use amethyst::{
     core::transform::Transform,
-    ecs::prelude::{Join, System, WriteStorage},
+    core::SystemDesc,
+    derive::SystemDesc,
+    ecs::prelude::{Join, System, SystemData, World, WriteStorage},
 };
 
 use crate::pong::{Ball, ARENA_WIDTH};
 
+#[derive(SystemDesc)]
 pub struct WinnerSystem;
 
 impl<'s> System<'s> for WinnerSystem {
@@ -60,11 +63,11 @@ impl<'s> System<'s> for WinnerSystem {
         for (ball, transform) in (&mut balls, &mut locals).join() {
             let ball_x = transform.translation().x;
 
-            let did_hit = if ball_x.as_f32() <= ball.radius {
+            let did_hit = if ball_x <= ball.radius {
                 // Right player scored on the left side.
                 println!("Player 2 Scores!");
                 true
-            } else if ball_x.as_f32() >= ARENA_WIDTH - ball.radius {
+            } else if ball_x >= ARENA_WIDTH - ball.radius {
                 // Left player scored on the right side.
                 println!("Player 1 Scores!");
                 true
@@ -95,34 +98,38 @@ keep playing after someone scores and log who got the point.
 # extern crate amethyst;
 #
 # use amethyst::{
-#    prelude::*,
 #    core::transform::TransformBundle,
-#    renderer::{
-#        DisplayConfig,
-#        DrawFlat2D,
-#        Pipeline,
-#        RenderBundle,
-#        Stage,
-#    }
+#    ecs::{World, WorldExt},
+#    prelude::*,
+#    input::StringBindings,
+#    window::DisplayConfig,
 # };
 #
 # mod systems {
 #     use amethyst;
+#     use amethyst::core::SystemDesc;
+#     use amethyst::core::ecs::{System, SystemData, World};
+#     use amethyst::derive::SystemDesc;
+#
+#     #[derive(SystemDesc)]
 #     pub struct PaddleSystem;
 #     impl<'a> amethyst::ecs::System<'a> for PaddleSystem {
 #         type SystemData = ();
 #         fn run(&mut self, _: Self::SystemData) { }
 #     }
+#     #[derive(SystemDesc)]
 #     pub struct MoveBallsSystem;
 #     impl<'a> amethyst::ecs::System<'a> for MoveBallsSystem {
 #         type SystemData = ();
 #         fn run(&mut self, _: Self::SystemData) { }
 #     }
+#     #[derive(SystemDesc)]
 #     pub struct BounceSystem;
 #     impl<'a> amethyst::ecs::System<'a> for BounceSystem {
 #         type SystemData = ();
 #         fn run(&mut self, _: Self::SystemData) { }
 #     }
+#     #[derive(SystemDesc)]
 #     pub struct WinnerSystem;
 #     impl<'a> amethyst::ecs::System<'a> for WinnerSystem {
 #         type SystemData = ();
@@ -132,16 +139,12 @@ keep playing after someone scores and log who got the point.
 #
 # fn main() -> amethyst::Result<()> {
 #
-# let path = "./resources/display_config.ron";
+# let path = "./config/display.ron";
 # let config = DisplayConfig::load(&path);
-# let pipe = Pipeline::build().with_stage(Stage::with_backbuffer()
-#       .clear_target([0.0, 0.0, 0.0, 1.0], 1.0)
-#       .with_pass(DrawFlat2D::new()),
-# );
-# let input_bundle = amethyst::input::InputBundle::<String, String>::new();
+# let input_bundle = amethyst::input::InputBundle::<StringBindings>::new();
 #
+# let mut world = World::new();
 let game_data = GameDataBuilder::default()
-#    .with_bundle(RenderBundle::new(pipe, Some(config)).with_sprite_sheet_processor())?
 #    .with_bundle(TransformBundle::new())?
 #    .with_bundle(input_bundle)?
 #    .with(systems::PaddleSystem, "paddle_system", &["input_system"])
@@ -151,7 +154,6 @@ let game_data = GameDataBuilder::default()
 #        "collision_system",
 #        &["paddle_system", "ball_system"],
 #    )
-    // --snip--
     .with(systems::WinnerSystem, "winner_system", &["ball_system"]);
 #
 # let assets_dir = "/";
@@ -175,33 +177,56 @@ to display our players' scores.
 First, let's add the UI rendering in `main.rs`. Add the following imports:
 
 ```rust,edition2018,no_run,noplaypen
-use amethyst::ui::{DrawUiDesc, UiBundle};
+# extern crate amethyst;
+use amethyst::ui::{RenderUi, UiBundle};
 ```
 
-Then, change your `GraphCreator` like so:
+Then, add a `RenderUi` plugin to your `RenderBundle` like so:
 
 ```rust,edition2018,no_run,noplaypen
-// Create our first `Subpass`, which contains the DrawFlat2D and DrawUi render groups.
-// We pass the subpass builder a description of our pass for construction		        // We pass the subpass builder a description of our groups for construction
-// Create our first `Subpass`, which contains the DrawFlat2D and DrawUi render groups.
-// We pass the subpass builder a description of our groups for construction
-let pass = graph_builder.add_node(
-    SubpassBuilder::new()
-        .with_group(DrawFlat2DDesc::default().builder()) // Draws sprites
-        .with_group(DrawUiDesc::default().builder()) // Draws UI components
-        .with_color(color)
-        .with_depth_stencil(depth)
-        .into_pass(),
-);
+# extern crate amethyst;
+# use amethyst::{
+#     ecs::{World, WorldExt},
+#     prelude::*,
+#     renderer::{
+#         types::DefaultBackend,
+#         RenderingBundle,
+#     },
+#     ui::RenderUi,
+# };
+# fn main() -> Result<(), amethyst::Error>{
+# let mut world = World::new();
+# let game_data = GameDataBuilder::default()
+    .with_bundle(RenderingBundle::<DefaultBackend>::new()
+        // ...
+            .with_plugin(RenderUi::default()),
+    )?;
+# Ok(()) }
 ```
 
 Finally, add the `UiBundle` after the `InputBundle`:
 
 ```rust,edition2018,no_run,noplaypen
-.with_bundle(UiBundle::<DefaultBackend, StringBindings>::new())?
+# extern crate amethyst;
+# use amethyst::{
+#     ecs::{World, WorldExt},
+#     input::StringBindings,
+#     prelude::*,
+# };
+# use amethyst::ui::UiBundle;
+# fn main() -> Result<(), amethyst::Error>{
+# let display_config_path = "";
+# struct Pong;
+# let mut world = World::new();
+# let game_data = GameDataBuilder::default()
+.with_bundle(UiBundle::<StringBindings>::new())?
+# ;
+# 
+# Ok(())
+# }
 ```
 
-We're adding a `DrawUiDesc` to our `SubpassBuilder`, and we're also adding the
+We're adding a `RenderUi` to our `RenderBundle`, and we're also adding the
 `UiBundle` to our game data. This allows us to start
 rendering UI visuals to our game in addition to the existing background and
 sprites.
@@ -234,8 +259,6 @@ pub struct ScoreText {
     pub p1_score: Entity,
     pub p2_score: Entity,
 }
-
-// --snip--
 ```
 > Don't glimpse over the `#[derive(Default)]` annotation for the `ScoreBoard` struct!
 
@@ -250,8 +273,9 @@ rendered to the screen. We'll create those next:
 #
 use amethyst::{
 #     assets::{AssetStorage, Loader},
+#     ecs::Entity,
 #     prelude::*,
-    // --snip--
+    // ...
     ui::{Anchor, TtfFormat, UiText, UiTransform},
 };
 
@@ -265,7 +289,7 @@ impl SimpleState for Pong {
         initialise_scoreboard(world);
     }
 }
-// --snip--
+// ...
 
 /// Initialises a ui scoreboard
 fn initialise_scoreboard(world: &mut World) {
@@ -304,7 +328,8 @@ fn initialise_scoreboard(world: &mut World) {
             50.,
         )).build();
 
-    world.add_resource(ScoreText { p1_score, p2_score });
+# pub struct ScoreText {pub p1_score: Entity,pub p2_score: Entity,}
+    world.insert(ScoreText { p1_score, p2_score });
 }
 ```
 
@@ -377,13 +402,16 @@ accordingly:
 #
 use amethyst::{
 #     core::transform::Transform,
+#     core::SystemDesc,
+#     derive::SystemDesc,
     // --snip--
-    ecs::prelude::{Join, ReadExpect, System, Write, WriteStorage},
+    ecs::prelude::{Join, ReadExpect, System, SystemData, World, Write, WriteStorage},
     ui::UiText,
 };
 
 use crate::pong::{Ball, ScoreBoard, ScoreText, ARENA_WIDTH};
 
+#[derive(SystemDesc)]
 pub struct WinnerSystem;
 
 impl<'s> System<'s> for WinnerSystem {
@@ -406,7 +434,7 @@ impl<'s> System<'s> for WinnerSystem {
 #             let ball_x = transform.translation().x;
             // --snip--
 
-            let did_hit = if ball_x.as_f32() <= ball.radius {
+            let did_hit = if ball_x <= ball.radius {
                 // Right player scored on the left side.
                 // We top the score at 999 to avoid text overlap.
                 scores.score_right = (scores.score_right + 1)
@@ -416,7 +444,7 @@ impl<'s> System<'s> for WinnerSystem {
                     text.text = scores.score_right.to_string();
                 }
                 true
-            } else if ball_x.as_f32() >= ARENA_WIDTH - ball.radius {
+            } else if ball_x >= ARENA_WIDTH - ball.radius {
                 // Left player scored on the right side.
                 // We top the score at 999 to avoid text overlap.
                 scores.score_left = (scores.score_left + 1)

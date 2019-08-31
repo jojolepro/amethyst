@@ -1,21 +1,25 @@
+use derivative::Derivative;
+use winit::Event;
+
 use crate::{
     core::{
-        ecs::{Read, Resources, SystemData},
+        ecs::{Read, SystemData, World},
         shrev::{EventChannel, ReaderId},
         EventReader,
     },
     derive::EventReader,
-    input::InputEvent,
+    input::{BindingTypes, InputEvent, StringBindings},
     ui::UiEvent,
 };
-use winit::Event;
 
-/// The enum holding the different types of event that can be received in a `State` in the handle_event method.
-#[derive(Clone, EventReader)]
+/// The enum holding the different types of event that can be received in a `State` in the
+/// `handle_event` method.
+#[derive(Debug, Derivative, EventReader)]
+#[derivative(Clone(bound = ""))]
 #[reader(StateEventReader)]
-pub enum StateEvent<T = String>
+pub enum StateEvent<T = StringBindings>
 where
-    T: Clone + Send + Sync + 'static,
+    T: BindingTypes,
 {
     /// Events sent by the winit window.
     Window(Event),

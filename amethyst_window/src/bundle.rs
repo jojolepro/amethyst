@@ -1,6 +1,6 @@
 use crate::{DisplayConfig, EventsLoopSystem, WindowSystem};
 use amethyst_config::Config;
-use amethyst_core::{bundle::SystemBundle, shred::DispatcherBuilder};
+use amethyst_core::{bundle::SystemBundle, ecs::World, shred::DispatcherBuilder};
 use amethyst_error::Error;
 use winit::EventsLoop;
 
@@ -11,6 +11,9 @@ pub const SCREEN_WIDTH: u32 = 800;
 #[cfg(feature = "test-support")]
 pub const SCREEN_HEIGHT: u32 = 600;
 
+/// Bundle providing easy initializing of the appopriate `Window`, `WindowSystem` `EventLoop` and
+/// `EventLoopSystem` constructs used for creating the rendering window of amethyst with `winit`
+#[derive(Debug)]
 pub struct WindowBundle {
     config: DisplayConfig,
 }
@@ -45,10 +48,14 @@ impl WindowBundle {
 }
 
 impl<'a, 'b> SystemBundle<'a, 'b> for WindowBundle {
-    fn build(self, builder: &mut DispatcherBuilder<'a, 'b>) -> Result<(), Error> {
+    fn build(
+        self,
+        world: &mut World,
+        builder: &mut DispatcherBuilder<'a, 'b>,
+    ) -> Result<(), Error> {
         let event_loop = EventsLoop::new();
         builder.add(
-            WindowSystem::from_config(&event_loop, self.config),
+            WindowSystem::from_config(world, &event_loop, self.config),
             "window",
             &[],
         );

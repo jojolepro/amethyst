@@ -28,6 +28,89 @@ impl<'a> System<'a> for MyFirstSystem {
 
 This system will, on every iteration of the game loop, print "Hello!" in the console. This is a pretty boring system as it does not interact at all with the game. Let us spice it up a bit.
 
+### System Initialization -- The `SystemDesc` Trait
+
+Systems may need to access resources from the `World` in order to be
+instantiated. For example, obtaining a `ReaderId` to an `EventChannel` that
+exists in the `World`. When there is an existing event channel in the `World`, a
+`System` should register itself as a reader of that channel instead of replacing
+it, as that invalidates all other readers.
+
+In Amethyst, the `World` that the application begins with is populated with a
+number of default resources -- event channels, a thread pool, a frame limiter,
+and so on.
+
+Given the default resources begin with special limits, we need a way to pass the
+`System` initialization logic through to the application, including parameters to
+the `System`'s constructor. This is information the `SystemDesc` trait captures.
+
+For each `System`, an implementation of the `SystemDesc` trait specifies the
+logic to instantiate the `System`. For `System`s that do not require special
+initialization logic, the `SystemDesc` derive automatically implements the
+`SystemDesc` trait on the system type itself:
+
+```rust,edition2018,no_run,noplaypen
+# extern crate amethyst;
+use amethyst::{
+    core::SystemDesc,
+    derive::SystemDesc,
+    ecs::{System, SystemData, World},
+};
+
+#[derive(SystemDesc)]
+struct MyFirstSystem;
+
+impl<'a> System<'a> for MyFirstSystem {
+    type SystemData = ();
+
+    fn run(&mut self, data: Self::SystemData) {
+        println!("Hello!");
+    }
+}
+```
+
+If there is one-time logic necessary to modify the `World` as part of system
+initialization, the `SystemDesc` trait can be implemented manually:
+
+```rust,edition2018,no_run,noplaypen
+# extern crate amethyst;
+#
+use amethyst::{
+    audio::output::Output,
+    core::SystemDesc,
+    ecs::{System, SystemData, World},
+};
+
+# /// Syncs 3D transform data with the audio engine to provide 3D audio.
+# #[derive(Debug, Default)]
+# pub struct AudioSystem(Output);
+# impl<'a> System<'a> for AudioSystem {
+#     type SystemData = ();
+#     fn run(&mut self, _: Self::SystemData) {}
+# }
+#
+/// Builds an `AudioSystem`.
+#[derive(Default, Debug)]
+pub struct AudioSystemDesc {
+    /// Audio `Output`.
+    pub output: Output,
+}
+
+impl<'a, 'b> SystemDesc<'a, 'b, AudioSystem> for AudioSystemDesc {
+    fn build(self, world: &mut World) -> AudioSystem {
+        <AudioSystem as System<'_>>::SystemData::setup(world);
+
+        world.insert(self.output.clone());
+
+        AudioSystem(self.output)
+    }
+}
+
+// in `main.rs`:
+// let game_data = GameDataBuilder::default()
+//     .with_system_desc(AudioSystemDesc::default(), "", &[]);
+```
+
 ## Accessing the context of the game
 
 In the definition of a system, the trait requires you to define a type `SystemData`. This type defines what data the system will be provided with on each call of its `run` method. `SystemData` is only meant to carry information accessible to multiple systems. Data local to a system is usually stored in the system's struct itself instead.
@@ -91,7 +174,7 @@ However, this approach is pretty rare because most of the time you don't know wh
 
 ### Getting all entities with specific components
 
-Most of the time, you will want to perform logic on all entities with a specific components, or even all entities with a selection of components.
+Most of the time, you will want to perform logic on all entities with a specific component, or even all entities with a selection of components.
 
 This is possible using the `join` method. You may be familiar with joining operations if you have ever worked with databases. The `join` method takes multiple storages, and iterates over all entities that have a component in each of those storages.
 It works like an "AND" gate. It will return an iterator containing a tuple of all the requested components if they are **ALL** on the same entity.
@@ -105,7 +188,7 @@ Keep in mind that **the `join` method is only available by importing `amethyst::
 ```rust,edition2018,no_run,noplaypen
 # extern crate amethyst;
 # use amethyst::ecs::{System, ReadStorage, WriteStorage};
-# use amethyst::core::{Float, Transform};
+# use amethyst::core::Transform;
 # struct FallingObject;
 # impl amethyst::ecs::Component for FallingObject {
 #   type Storage = amethyst::ecs::DenseVecStorage<FallingObject>;
@@ -122,7 +205,7 @@ impl<'a> System<'a> for MakeObjectsFall {
 
     fn run(&mut self, (mut transforms, falling): Self::SystemData) {
         for (mut transform, _) in (&mut transforms, &falling).join() {
-            if transform.translation().y.as_f32() > 0.0 {
+            if transform.translation().y > 0.0 {
                 transform.prepend_translation_y(-0.1);
             }
         }
@@ -250,7 +333,7 @@ impl<'a> System<'a> for MakeObjectsFall {
 
     fn run(&mut self, (entities, mut transforms, falling): Self::SystemData) {
         for (e, mut transform, _) in (&*entities, &mut transforms, &falling).join() {
-            if transform.translation().y.as_f32() > 0.0 {
+            if transform.translation().y > 0.0 {
                 transform.prepend_translation_y(-0.1);
             } else {
                 entities.delete(e);
@@ -491,7 +574,10 @@ Please note that tuples of structs implementing `SystemData` are themselves `Sys
 # extern crate shred;
 # #[macro_use] extern crate shred_derive;
 #
-# use amethyst::ecs::{ReadStorage, WriteStorage, SystemData, Component, VecStorage, System, Join};
+# use amethyst::{
+#     ecs::{Component, Join, ReadStorage, System, SystemData, VecStorage, World, WriteStorage},
+#     shred::ResourceId,
+# };
 #
 # struct FooComponent {
 #   stuff: f32,
@@ -540,22 +626,3 @@ impl<'a> System<'a> for MyFirstSystem {
 }
 ```
 
-## The setup method
-
-Systems have a method called setup which is called a single time, before any of the system runs.
-Here is how to use it:
-
-```rust,edition2018,no_run,noplaypen
-# extern crate amethyst;
-# use amethyst::ecs::{System, Resources, SystemData, Entity};
-# struct MySystem { entity: Entity }
-# impl<'a> System<'a> for MySystem {
-#   type SystemData = ();
-#   fn run(&mut self, _: Self::SystemData) { }
-    fn setup(&mut self, res: &mut Resources) {
-        // Ensures that resources that implement `Default` and are present in your `SystemData` are added to `Resources`.
-        Self::SystemData::setup(res);
-        // Do what you want with `Resources` past this point.
-    }
-# }
-```

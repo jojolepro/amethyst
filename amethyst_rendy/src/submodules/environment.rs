@@ -1,3 +1,5 @@
+//! Environment submodule for shared environmental descriptor set data.
+//! Fetches and sets projection and lighting descriptor set information.
 use crate::{
     light::Light,
     pod::{self, IntoPod},
@@ -13,7 +15,7 @@ use crate::{
     util::{self, TapCountIter},
 };
 use amethyst_core::{
-    ecs::{Join, ReadStorage, Resources, SystemData},
+    ecs::{Join, ReadStorage, SystemData, World},
     math::{convert, Vector3},
     transform::Transform,
 };
@@ -26,12 +28,18 @@ const MAX_POINT_LIGHTS: usize = 128;
 const MAX_DIR_LIGHTS: usize = 16;
 const MAX_SPOT_LIGHTS: usize = 128;
 
+/// Submodule for loading and binding descriptor sets for a 3D, lit environment.
+/// This also abstracts away the need for handling multiple images in flight, as it provides
+/// per-image submissions.
 #[derive(Debug)]
 pub struct EnvironmentSub<B: Backend> {
     layout: RendyHandle<DescriptorSetLayout<B>>,
     per_image: Vec<PerImageEnvironmentSub<B>>,
 }
 
+/// Submodule for loading and binding descriptor sets for a 3D, lit environment.
+/// This is the actual implementation for a given environment, but multiple instances may exist
+/// for each image in flight.
 #[derive(Debug)]
 struct PerImageEnvironmentSub<B: Backend> {
     buffer: Option<Escape<Buffer<B>>>,
@@ -39,18 +47,25 @@ struct PerImageEnvironmentSub<B: Backend> {
 }
 
 impl<B: Backend> EnvironmentSub<B> {
-    pub fn new(factory: &Factory<B>) -> Result<Self, failure::Error> {
+    /// Create and allocate a new `EnvironmentSub` with the provided rendy `Factory`
+    /// Allocate to the supplied shader.
+    pub fn new(
+        factory: &Factory<B>,
+        flags: [hal::pso::ShaderStageFlags; 2],
+    ) -> Result<Self, failure::Error> {
         Ok(Self {
-            layout: set_layout! {factory, [1] UniformBuffer VERTEX, [4] UniformBuffer FRAGMENT},
+            layout: set_layout! {factory, [1] UniformBuffer flags[0], [4] UniformBuffer flags[1]},
             per_image: Vec::new(),
         })
     }
 
+    /// Returns the raw `DescriptorSetLayout` for this environment
     pub fn raw_layout(&self) -> &B::DescriptorSetLayout {
         self.layout.raw()
     }
 
-    pub fn process(&mut self, factory: &Factory<B>, index: usize, res: &Resources) -> bool {
+    /// Performs any re-allocation and GPU memory writing required for this environment set.
+    pub fn process(&mut self, factory: &Factory<B>, index: usize, world: &World) -> bool {
         #[cfg(feature = "profiler")]
         profile_scope!("process");
 
@@ -61,9 +76,10 @@ impl<B: Backend> EnvironmentSub<B> {
             }
             &mut self.per_image[index]
         };
-        this_image.process(factory, res)
+        this_image.process(factory, world)
     }
 
+    /// Binds this environment set for all images.
     #[inline]
     pub fn bind(
         &self,
@@ -91,15 +107,17 @@ impl<B: Backend> PerImageEnvironmentSub<B> {
         set_id: u32,
         encoder: &mut RenderPassEncoder<'_, B>,
     ) {
-        encoder.bind_graphics_descriptor_sets(
-            pipeline_layout,
-            set_id,
-            Some(self.set.raw()),
-            std::iter::empty(),
-        );
+        unsafe {
+            encoder.bind_graphics_descriptor_sets(
+                pipeline_layout,
+                set_id,
+                Some(self.set.raw()),
+                std::iter::empty(),
+            );
+        }
     }
 
-    fn process(&mut self, factory: &Factory<B>, res: &Resources) -> bool {
+    fn process(&mut self, factory: &Factory<B>, world: &World) -> bool {
         let align = factory
             .physical()
             .limits()
@@ -153,14 +171,14 @@ impl<B: Backend> PerImageEnvironmentSub<B> {
             let CameraGatherer {
                 camera_position,
                 projview,
-            } = CameraGatherer::gather(res);
+            } = CameraGatherer::gather(world);
 
             let mut mapped = buffer.map(factory, whole_range.clone()).unwrap();
             let mut writer = unsafe { mapped.write::<u8>(factory, whole_range.clone()).unwrap() };
             let dst_slice = unsafe { writer.slice() };
 
             let mut env = pod::Environment {
-                ambient_color: AmbientGatherer::gather(res),
+                ambient_color: AmbientGatherer::gather(world),
                 camera_position,
                 point_light_count: 0,
                 directional_light_count: 0,
@@ -169,7 +187,7 @@ impl<B: Backend> PerImageEnvironmentSub<B> {
             .std140();
 
             let (lights, transforms) =
-                <(ReadStorage<'_, Light>, ReadStorage<'_, Transform>)>::fetch(res);
+                <(ReadStorage<'_, Light>, ReadStorage<'_, Transform>)>::fetch(world);
 
             let point_lights = (&lights, &transforms)
                 .join()

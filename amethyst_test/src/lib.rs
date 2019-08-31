@@ -1,5 +1,11 @@
-#![deny(missing_docs)]
-#![deny(missing_debug_implementations)]
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    rust_2018_idioms,
+    rust_2018_compatibility
+)]
+#![warn(clippy::all)]
+#![allow(clippy::new_without_default)]
 
 //! Test harness to support testing of Amethyst types, including:
 //!
@@ -46,7 +52,7 @@
 //! #     fn update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> Trans<GameData<'a, 'b>, E> {
 //! #         data.data.update(&data.world);
 //! #
-//! #         data.world.add_resource(LoadResource);
+//! #         data.world.insert(LoadResource);
 //! #
 //! #         Trans::Pop
 //! #     }
@@ -81,22 +87,49 @@
 //!     // Start with no bundles
 //!     AmethystApplication::blank();
 //!
-//!     // Start with the Transform, Input, and UI bundles
-//!     // The type parameters here are the Axis and Action types for the `InputBundle` and
-//!     // `UiBundle`.
-//!     AmethystApplication::ui_base::<amethyst::input::StringBindings>();
+//!     // Start with the following bundles:
+//!     //
+//!     // * `TransformBundle`
+//!     // * `InputBundle`
+//!     // * `UiBundle`
+//!     //
+//!     // The type parameters here are the Axis and Action types for the
+//!     // `InputBundle` and `UiBundle`.
+//!     use amethyst::input::StringBindings;
+//!     AmethystApplication::ui_base::<StringBindings>();
 //!
-//!     // Start with the Animation, Transform, and Render bundles.
-//!     // If you want the Input and UI bundles, you can use the `.with_ui_bundles::<T>()`
-//!     // method.
-//!     let visibility = false; // Whether the window should be shown
-//!     AmethystApplication::render_base("test_name", visibility);
+//!     // If you need types from the rendering bundle, make sure you have
+//!     // the `"test-support"` feature enabled:
+//!     //
+//!     // ```toml
+//!     // # Cargo.toml
+//!     // amethyst = { version = "..", features = ["test-support"] }
+//!     // ```
+//!     //
+//!     // Then you can include the `RenderEmptyBundle`:
+//!     use amethyst::renderer::{types::DefaultBackend, RenderEmptyBundle};
+//!     AmethystApplication::blank()
+//!         .with_bundle(RenderEmptyBundle::<DefaultBackend>::new());
 //! }
 //! ```
 //!
 //! Next, attach the logic you wish to test using the various `.with_*(..)` methods:
 //!
 //! ```rust,no_run
+//! # use amethyst::{
+//! #     core::bundle::SystemBundle,
+//! #     ecs::prelude::*,
+//! #     prelude::*,
+//! # };
+//! #
+//! # #[derive(Debug)]
+//! # struct MySystem;
+//! #
+//! # impl<'s> System<'s> for MySystem {
+//! #     type SystemData = ();
+//! #     fn run(&mut self, _: Self::SystemData) {}
+//! # }
+//! #
 //! #[test]
 //! fn test_name() {
 //!     let visibility = false; // Whether the window should be shown
@@ -104,7 +137,7 @@
 //!         .with_bundle(MyBundle::new())                // Registers a bundle.
 //!         .with_bundle_fn(|| MyNonSendBundle::new())   // Registers a `!Send` bundle.
 //!         .with_resource(MyResource::new())            // Adds a resource to the world.
-//!         .with_system(MySystem::new(), "my_sys", &[]) // Registers a system with the main
+//!         .with_system(MySystem, "my_sys", &[])        // Registers a system with the main
 //!                                                      // dispatcher.
 //!
 //!         // These are run in the order they are invoked.
@@ -155,17 +188,14 @@
 //! #     type SystemData = ReadExpect<'s, ApplicationResource>;
 //! #
 //! #     fn run(&mut self, _: Self::SystemData) {}
-//! #
-//! #     fn setup(&mut self, res: &mut Resources) {
-//! #         Self::SystemData::setup(res);
-//! #         res.insert(ApplicationResource);
-//! #     }
 //! # }
 //! #
 //! # #[derive(Debug)]
 //! # struct MyBundle;
 //! # impl<'a, 'b> SystemBundle<'a, 'b> for MyBundle {
-//! #     fn build(self, builder: &mut DispatcherBuilder<'a, 'b>) -> amethyst::Result<()> {
+//! #     fn build(self, world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>)
+//! #     -> amethyst::Result<()> {
+//! #         world.insert(ApplicationResource);
 //! #         builder.add(MySystem, "my_system", &[]);
 //! #         Ok(())
 //! #     }
@@ -222,7 +252,7 @@
 //!             .with_system(MySystem, "my_system", &[])
 //!             .with_effect(|world| {
 //!                 let entity = world.create_entity().with(MyComponent(0)).build();
-//!                 world.add_resource(EffectReturn(entity));
+//!                 world.insert(EffectReturn(entity));
 //!             })
 //!             .with_assertion(|world| {
 //!                 let entity = world.read_resource::<EffectReturn<Entity>>().0.clone();
@@ -274,7 +304,7 @@
 //!     assert!(
 //!         AmethystApplication::blank()
 //!             .with_setup(|world| {
-//!                 world.add_resource(MyResource(0));
+//!                 world.insert(MyResource(0));
 //!             })
 //!             .with_system_single(MySystem, "my_system", &[])
 //!             .with_assertion(|world| {
@@ -304,6 +334,7 @@ pub use crate::{
     },
 };
 pub(crate) use crate::{
+    system_desc_injection_bundle::SystemDescInjectionBundle,
     system_injection_bundle::SystemInjectionBundle,
     thread_local_injection_bundle::ThreadLocalInjectionBundle,
 };
@@ -314,5 +345,6 @@ mod fixture;
 mod game_update;
 pub mod prelude;
 mod state;
+mod system_desc_injection_bundle;
 mod system_injection_bundle;
 mod thread_local_injection_bundle;

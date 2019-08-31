@@ -7,7 +7,7 @@ use crate::{
     types::Backend,
     util,
 };
-use amethyst_core::ecs::{Read, Resources, SystemData};
+use amethyst_core::ecs::{Read, SystemData, World};
 use derivative::Derivative;
 use glsl_layout::{vec3, AsStd140};
 use rendy::{
@@ -26,7 +26,7 @@ use rendy::{
 use thread_profiler::profile_scope;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct SkyboxSettings {
+struct SkyboxSettings {
     nadir_color: Srgb,
     zenith_color: Srgb,
 }
@@ -41,13 +41,13 @@ impl Default for SkyboxSettings {
 }
 
 #[derive(Clone, Debug, PartialEq, AsStd140)]
-pub struct SkyboxUniform {
+pub(crate) struct SkyboxUniform {
     nadir_color: vec3,
     zenith_color: vec3,
 }
 
 impl SkyboxSettings {
-    fn uniform(&self) -> <SkyboxUniform as AsStd140>::Std140 {
+    pub(crate) fn uniform(&self) -> <SkyboxUniform as AsStd140>::Std140 {
         SkyboxUniform {
             nadir_color: self.nadir_color.into_pod(),
             zenith_color: self.zenith_color.into_pod(),
@@ -56,7 +56,7 @@ impl SkyboxSettings {
     }
 }
 
-/// Draw opaque sprites without lighting.
+/// Describe drawing a skybox around the camera view
 #[derive(Clone, Debug, PartialEq, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct DrawSkyboxDesc {
@@ -64,11 +64,12 @@ pub struct DrawSkyboxDesc {
 }
 
 impl DrawSkyboxDesc {
-    /// Create instance of `DrawSkybox` render group
+    /// Create instance of [DrawSkybox] render group
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Defines the [SkyboxSettings] colors to initialize for this render group
     pub fn with_colors(nadir_color: Srgb, zenith_color: Srgb) -> Self {
         Self {
             default_settings: SkyboxSettings {
@@ -79,19 +80,19 @@ impl DrawSkyboxDesc {
     }
 }
 
-impl<B: Backend> RenderGroupDesc<B, Resources> for DrawSkyboxDesc {
+impl<B: Backend> RenderGroupDesc<B, World> for DrawSkyboxDesc {
     fn build(
         self,
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         queue: QueueId,
-        _resources: &Resources,
+        _resources: &World,
         framebuffer_width: u32,
         framebuffer_height: u32,
         subpass: hal::pass::Subpass<'_, B>,
         _buffers: Vec<NodeBuffer>,
         _images: Vec<NodeImage>,
-    ) -> Result<Box<dyn RenderGroup<B, Resources>>, failure::Error> {
+    ) -> Result<Box<dyn RenderGroup<B, World>>, failure::Error> {
         #[cfg(feature = "profiler")]
         profile_scope!("build");
 
@@ -120,6 +121,7 @@ impl<B: Backend> RenderGroupDesc<B, Resources> for DrawSkyboxDesc {
     }
 }
 
+/// Draw a skybox around the camera view
 #[derive(Debug)]
 pub struct DrawSkybox<B: Backend> {
     pipeline: B::GraphicsPipeline,
@@ -130,14 +132,14 @@ pub struct DrawSkybox<B: Backend> {
     default_settings: SkyboxSettings,
 }
 
-impl<B: Backend> RenderGroup<B, Resources> for DrawSkybox<B> {
+impl<B: Backend> RenderGroup<B, World> for DrawSkybox<B> {
     fn prepare(
         &mut self,
         factory: &Factory<B>,
         _queue: QueueId,
         index: usize,
         _subpass: hal::pass::Subpass<'_, B>,
-        resources: &Resources,
+        resources: &World,
     ) -> PrepareResult {
         #[cfg(feature = "profiler")]
         profile_scope!("prepare");
@@ -161,7 +163,7 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawSkybox<B> {
         mut encoder: RenderPassEncoder<'_, B>,
         index: usize,
         _subpass: hal::pass::Subpass<'_, B>,
-        _resources: &Resources,
+        _resources: &World,
     ) {
         #[cfg(feature = "profiler")]
         profile_scope!("draw");
@@ -172,10 +174,12 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawSkybox<B> {
         self.mesh
             .bind(0, &[PosTex::vertex()], &mut encoder)
             .unwrap();
-        encoder.draw(0..self.mesh.len(), 0..1);
+        unsafe {
+            encoder.draw(0..self.mesh.len(), 0..1);
+        }
     }
 
-    fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &Resources) {
+    fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
         unsafe {
             factory.device().destroy_graphics_pipeline(self.pipeline);
             factory

@@ -1,5 +1,10 @@
-use std::{hash::Hash, marker, time::Duration};
+use std::{
+    hash::Hash,
+    marker::{self, PhantomData},
+    time::Duration,
+};
 
+use derivative::Derivative;
 use fnv::FnvHashMap;
 use log::error;
 use minterpolate::InterpolationPrimitive;
@@ -7,10 +12,11 @@ use minterpolate::InterpolationPrimitive;
 use amethyst_assets::{AssetStorage, Handle};
 use amethyst_core::{
     ecs::prelude::{
-        Component, Entities, Entity, Join, Read, ReadStorage, Resources, System, SystemData,
+        Component, Entities, Entity, Join, Read, ReadStorage, System, SystemData, World,
         WriteStorage,
     },
     timing::secs_to_duration,
+    SystemDesc,
 };
 
 use crate::resources::{
@@ -18,6 +24,30 @@ use crate::resources::{
     AnimationSampling, AnimationSet, ApplyData, ControlState, DeferStartRelation, RestState,
     Sampler, SamplerControl, SamplerControlSet, StepDirection,
 };
+
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
+
+/// Builds an `AnimationControlSystem`.
+#[derive(Derivative, Debug)]
+#[derivative(Default(bound = ""))]
+pub struct AnimationControlSystemDesc<I, T> {
+    marker: PhantomData<(I, T)>,
+}
+
+impl<'a, 'b, I, T> SystemDesc<'a, 'b, AnimationControlSystem<I, T>>
+    for AnimationControlSystemDesc<I, T>
+where
+    I: Copy + Eq + Hash + Send + Sync + 'static,
+    T: AnimationSampling + Component + Clone,
+{
+    fn build(self, world: &mut World) -> AnimationControlSystem<I, T> {
+        <AnimationControlSystem<I, T> as System<'_>>::SystemData::setup(world);
+        ReadStorage::<AnimationSet<I, T>>::setup(world);
+
+        AnimationControlSystem::new()
+    }
+}
 
 /// System for setting up animations, should run before `SamplerInterpolationSystem`.
 ///
@@ -30,7 +60,7 @@ use crate::resources::{
 /// - `I`: identifier type for running animations, only one animation can be run at the same time
 ///        with the same id
 /// - `T`: the component type that the animation should be applied to
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct AnimationControlSystem<I, T>
 where
     I: Eq + Hash,
@@ -44,7 +74,8 @@ where
 
 impl<I, T> AnimationControlSystem<I, T>
 where
-    I: Eq + Hash,
+    I: PartialEq + Eq + Hash + Copy + Send + Sync + 'static,
+    T: AnimationSampling + Component + Clone,
 {
     /// Creates a new `AnimationControlSystem`
     pub fn new() -> Self {
@@ -63,6 +94,7 @@ where
     I: PartialEq + Eq + Hash + Copy + Send + Sync + 'static,
     T: AnimationSampling + Component + Clone,
 {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Entities<'a>,
         Read<'a, AssetStorage<Animation<T>>>,
@@ -76,6 +108,9 @@ where
     );
 
     fn run(&mut self, data: Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("animation_control_system");
+
         let (
             entities,
             animation_storage,
@@ -204,11 +239,6 @@ where
         for entity in remove_sets {
             controls.remove(entity);
         }
-    }
-
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
-        ReadStorage::<AnimationSet<I, T>>::setup(res);
     }
 }
 
@@ -472,38 +502,36 @@ where
         let node_entity = hierarchy.nodes.get(node_index).expect(
             "Unreachable: Existence of all nodes are checked in validation of hierarchy above",
         );
-        let component = rest_states
+        if let Some(component) = rest_states
             .get(*node_entity)
             .map(RestState::state)
             .or_else(|| targets.get(*node_entity))
-            .expect(
-                "Unreachable: Existence of all nodes are checked in validation of hierarchy above",
-            );
-        let sampler_control = SamplerControl::<T> {
-            control_id: control.id,
-            channel: channel.clone(),
-            state: start_state.clone(),
-            sampler: sampler_handle.clone(),
-            end: control.end.clone(),
-            after: component.current_sample(channel, apply_data),
-            rate_multiplier: control.rate_multiplier,
-            blend_weight: 1.0,
-        };
-        let add = if let Some(ref mut set) = samplers.get_mut(*node_entity) {
-            set.add_control(sampler_control);
-            None
-        } else {
-            Some(sampler_control)
-        };
-        if let Some(sampler_control) = add {
-            let mut set = SamplerControlSet::default();
-            set.add_control(sampler_control);
-            if let Err(err) = samplers.insert(*node_entity, set) {
-                error!(
-                    "Failed creating SamplerControl for AnimationHierarchy because: {}",
-                    err
-                );
+        {
+            let sampler_control = SamplerControl::<T> {
+                control_id: control.id,
+                channel: channel.clone(),
+                state: start_state.clone(),
+                sampler: sampler_handle.clone(),
+                end: control.end.clone(),
+                after: component.current_sample(channel, apply_data),
+                rate_multiplier: control.rate_multiplier,
+                blend_weight: 1.0,
+            };
+            if let Some(ref mut set) = samplers.get_mut(*node_entity) {
+                set.add_control(sampler_control);
+            } else {
+                let mut set = SamplerControlSet::default();
+                set.add_control(sampler_control);
+                if let Err(err) = samplers.insert(*node_entity, set) {
+                    error!(
+                        "Failed creating SamplerControl for AnimationHierarchy because: {}",
+                        err
+                    );
+                }
             }
+        } else {
+            error!("Failed to acquire animated component. Is the component you are trying to animate present on the target entity: {:?}", node_entity);
+            return false;
         }
     }
     true

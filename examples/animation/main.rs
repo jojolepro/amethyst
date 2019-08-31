@@ -1,25 +1,20 @@
 //! Displays a shaded sphere to the user.
 
 use amethyst::{
-    animation::{
-        get_animation_set, AnimationBundle, AnimationCommand, AnimationSet, AnimationSetPrefab,
-        DeferStartRelation, EndControl, StepDirection,
-    },
-    assets::{PrefabLoader, PrefabLoaderSystem, RonFormat},
+    animation::*,
+    assets::{Loader, PrefabLoader, PrefabLoaderSystemDesc, RonFormat},
     core::{Transform, TransformBundle},
-    ecs::prelude::{Entity, ReadExpect, Resources},
+    ecs::prelude::{Entity, World, WorldExt},
     input::{get_key, is_close_requested, is_key_down},
     prelude::*,
     renderer::{
-        pass::DrawPbrDesc,
+        plugins::{RenderPbr3D, RenderToWindow},
         rendy::mesh::{Normal, Position, Tangent, TexCoord},
         types::DefaultBackend,
-        Factory, Format, GraphBuilder, GraphCreator, Kind, RenderGroupDesc, RenderingSystem,
-        SubpassBuilder,
+        RenderingBundle,
     },
     utils::{application_root_dir, scene::BasicScenePrefab},
-    window::{ScreenDimensions, WindowBundle},
-    winit::{ElementState, VirtualKeyCode, Window},
+    winit::{ElementState, VirtualKeyCode},
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +30,7 @@ enum AnimationId {
     Scale,
     Rotate,
     Translate,
+    Test,
 }
 
 struct Example {
@@ -61,6 +57,43 @@ impl SimpleState for Example {
             loader.load("prefab/animation.ron", RonFormat, ())
         });
         self.sphere = Some(world.create_entity().with(prefab_handle).build());
+
+        let (animation_set, animation) = {
+            let loader = world.read_resource::<Loader>();
+
+            let sampler = loader.load_from_data(
+                Sampler {
+                    input: vec![0., 1.],
+                    output: vec![
+                        SamplerPrimitive::Vec3([0., 0., 0.]),
+                        SamplerPrimitive::Vec3([0., 1., 0.]),
+                    ],
+                    function: InterpolationFunction::Step,
+                },
+                (),
+                &world.read_resource(),
+            );
+
+            let animation = loader.load_from_data(
+                Animation::new_single(0, TransformChannel::Translation, sampler),
+                (),
+                &world.read_resource(),
+            );
+            let mut animation_set: AnimationSet<AnimationId, Transform> = AnimationSet::new();
+            animation_set.insert(AnimationId::Test, animation.clone());
+            (animation_set, animation)
+        };
+
+        let entity = world.create_entity().with(animation_set).build();
+        let mut storage = world.write_storage::<AnimationControlSet<AnimationId, Transform>>();
+        let control_set = get_animation_set(&mut storage, entity).unwrap();
+        control_set.add_animation(
+            AnimationId::Test,
+            &animation,
+            EndControl::Loop(None),
+            1.0,
+            AnimationCommand::Start,
+        );
     }
 
     fn handle_event(
@@ -115,7 +148,7 @@ impl SimpleState for Example {
                 Some((VirtualKeyCode::Left, ElementState::Pressed)) => {
                     get_animation_set::<AnimationId, Transform>(
                         &mut world.write_storage(),
-                        self.sphere.unwrap().clone(),
+                        self.sphere.unwrap(),
                     )
                     .unwrap()
                     .step(self.current_animation, StepDirection::Backward);
@@ -124,7 +157,7 @@ impl SimpleState for Example {
                 Some((VirtualKeyCode::Right, ElementState::Pressed)) => {
                     get_animation_set::<AnimationId, Transform>(
                         &mut world.write_storage(),
-                        self.sphere.unwrap().clone(),
+                        self.sphere.unwrap(),
                     )
                     .unwrap()
                     .step(self.current_animation, StepDirection::Forward);
@@ -134,7 +167,7 @@ impl SimpleState for Example {
                     self.rate = 1.0;
                     get_animation_set::<AnimationId, Transform>(
                         &mut world.write_storage(),
-                        self.sphere.unwrap().clone(),
+                        self.sphere.unwrap(),
                     )
                     .unwrap()
                     .set_rate(self.current_animation, self.rate);
@@ -144,7 +177,7 @@ impl SimpleState for Example {
                     self.rate = 0.0;
                     get_animation_set::<AnimationId, Transform>(
                         &mut world.write_storage(),
-                        self.sphere.unwrap().clone(),
+                        self.sphere.unwrap(),
                     )
                     .unwrap()
                     .set_rate(self.current_animation, self.rate);
@@ -154,7 +187,7 @@ impl SimpleState for Example {
                     self.rate = 0.5;
                     get_animation_set::<AnimationId, Transform>(
                         &mut world.write_storage(),
-                        self.sphere.unwrap().clone(),
+                        self.sphere.unwrap(),
                     )
                     .unwrap()
                     .set_rate(self.current_animation, self.rate);
@@ -181,29 +214,31 @@ impl SimpleState for Example {
 
 fn main() -> amethyst::Result<()> {
     amethyst::Logger::from_config(amethyst::LoggerConfig {
-        log_file: Some("animation_example.log".into()),
         level_filter: log::LevelFilter::Error,
         ..Default::default()
     })
     .start();
 
     let app_root = application_root_dir()?;
-    let display_config_path = app_root.join("examples/animation/resources/display_config.ron");
-    let resources = app_root.join("examples/assets/");
+    let display_config_path = app_root.join("examples/animation/config/display.ron");
+    let assets_dir = app_root.join("examples/assets/");
 
     let game_data = GameDataBuilder::default()
-        .with_bundle(WindowBundle::from_config_path(display_config_path))?
-        .with(PrefabLoaderSystem::<MyPrefabData>::default(), "", &[])
+        .with_system_desc(PrefabLoaderSystemDesc::<MyPrefabData>::default(), "", &[])
         .with_bundle(AnimationBundle::<AnimationId, Transform>::new(
             "animation_control_system",
             "sampler_interpolation_system",
         ))?
         .with_bundle(TransformBundle::new().with_dep(&["sampler_interpolation_system"]))?
-        .with_thread_local(RenderingSystem::<DefaultBackend, _>::new(
-            ExampleGraph::default(),
-        ));
+        .with_bundle(
+            RenderingBundle::<DefaultBackend>::new()
+                .with_plugin(
+                    RenderToWindow::from_config_path(display_config_path).with_clear(CLEAR_COLOR),
+                )
+                .with_plugin(RenderPbr3D::default()),
+        )?;
     let state: Example = Default::default();
-    let mut game = Application::new(resources, state, game_data)?;
+    let mut game = Application::new(assets_dir, state, game_data)?;
     game.run();
 
     Ok(())
@@ -251,75 +286,5 @@ fn add_animation(
                 defer_relation,
             );
         }
-    }
-}
-
-#[derive(Default)]
-struct ExampleGraph {
-    dimensions: Option<ScreenDimensions>,
-    dirty: bool,
-}
-
-impl GraphCreator<DefaultBackend> for ExampleGraph {
-    fn rebuild(&mut self, res: &Resources) -> bool {
-        // Rebuild when dimensions change, but wait until at least two frames have the same.
-        let new_dimensions = res.try_fetch::<ScreenDimensions>();
-        use std::ops::Deref;
-        if self.dimensions.as_ref() != new_dimensions.as_ref().map(|d| d.deref()) {
-            self.dirty = true;
-            self.dimensions = new_dimensions.map(|d| d.clone());
-            return false;
-        }
-        return self.dirty;
-    }
-
-    fn builder(
-        &mut self,
-        factory: &mut Factory<DefaultBackend>,
-        res: &Resources,
-    ) -> GraphBuilder<DefaultBackend, Resources> {
-        use amethyst::renderer::rendy::{
-            graph::present::PresentNode,
-            hal::command::{ClearDepthStencil, ClearValue},
-        };
-
-        self.dirty = false;
-
-        use amethyst::shred::SystemData;
-
-        let window = <ReadExpect<'_, Window>>::fetch(res);
-
-        let surface = factory.create_surface(&window);
-        let dimensions = self.dimensions.as_ref().unwrap();
-        let window_kind = Kind::D2(dimensions.width() as u32, dimensions.height() as u32, 1, 1);
-
-        let mut graph_builder = GraphBuilder::new();
-        let color = graph_builder.create_image(
-            window_kind,
-            1,
-            factory.get_surface_format(&surface),
-            Some(ClearValue::Color(CLEAR_COLOR.into())),
-        );
-
-        let depth = graph_builder.create_image(
-            window_kind,
-            1,
-            Format::D16Unorm,
-            Some(ClearValue::DepthStencil(ClearDepthStencil(1.0, 0))),
-        );
-
-        let pass = graph_builder.add_node(
-            SubpassBuilder::new()
-                .with_group(DrawPbrDesc::skinned().builder())
-                .with_color(color)
-                .with_depth_stencil(depth)
-                .into_pass(),
-        );
-
-        let present_builder = PresentNode::builder(factory, surface, color).with_dependency(pass);
-
-        graph_builder.add_node(present_builder);
-
-        graph_builder
     }
 }

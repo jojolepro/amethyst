@@ -12,6 +12,9 @@ use amethyst_window::ScreenDimensions;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
+
 /// The coordinates that `CameraOrtho` will keep visible in the window.
 /// `bottom` can be a higher value than `top`, as is common in 2D coordinates
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
@@ -68,7 +71,7 @@ impl Default for CameraOrthoWorldCoordinates {
 /// # Example
 ///
 /// ```rust
-/// # use amethyst_core::ecs::{Builder, World};
+/// # use amethyst_core::ecs::{Builder, World, WorldExt};
 /// # use amethyst_core::Transform;
 /// # use amethyst_rendy::camera::Camera;
 /// # use amethyst_utils::ortho_camera::*;
@@ -156,7 +159,7 @@ pub enum CameraNormalizeMode {
 impl CameraNormalizeMode {
     /// Get the camera matrix offsets according to the specified options.
     fn camera_offsets(
-        &self,
+        self,
         window_aspect_ratio: f32,
         desired_coordinates: &CameraOrthoWorldCoordinates,
     ) -> (f32, f32, f32, f32) {
@@ -226,7 +229,7 @@ impl Default for CameraNormalizeMode {
 
 /// System that automatically changes the camera matrix according to the settings in
 /// the `CameraOrtho` attached to the camera entity.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct CameraOrthoSystem;
 
 impl<'a> System<'a> for CameraOrthoSystem {
@@ -238,6 +241,9 @@ impl<'a> System<'a> for CameraOrthoSystem {
 
     #[allow(clippy::float_cmp)] // cmp just used to recognize change
     fn run(&mut self, (dimensions, mut cameras, mut ortho_cameras): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("camera_ortho_system");
+
         let aspect = dimensions.aspect_ratio();
 
         for (camera, mut ortho_camera) in (&mut cameras, &mut ortho_cameras).join() {
@@ -323,7 +329,7 @@ mod test {
 
     #[test]
     fn normal_camera_square_lossy_horizontal() {
-        let aspect = 1.0 / 1.0;
+        let aspect = 1.0;
         let cam = CameraOrtho::normalized(CameraNormalizeMode::Lossy {
             stretch_direction: Axis2::X,
         });
@@ -332,7 +338,7 @@ mod test {
 
     #[test]
     fn normal_camera_square_lossy_vertical() {
-        let aspect = 1.0 / 1.0;
+        let aspect = 1.0;
         let cam = CameraOrtho::normalized(CameraNormalizeMode::Lossy {
             stretch_direction: Axis2::Y,
         });
@@ -355,7 +361,7 @@ mod test {
 
     #[test]
     fn normal_camera_square_contain() {
-        let aspect = 1.0 / 1.0;
+        let aspect = 1.0;
         let cam = CameraOrtho::normalized(CameraNormalizeMode::Contain);
         assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
     }
@@ -378,7 +384,7 @@ mod test {
 
     #[test]
     fn camera_square_contain() {
-        let aspect = 1.0 / 1.0;
+        let aspect = 1.0;
         let cam = CameraOrtho {
             mode: CameraNormalizeMode::Contain,
             world_coordinates: CameraOrthoWorldCoordinates {

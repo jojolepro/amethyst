@@ -1,11 +1,15 @@
 use amethyst_core::{
     ecs::prelude::{
-        BitSet, Component, ComponentEvent, FlaggedStorage, Join, ReadExpect, Resources, System,
-        WriteStorage,
+        BitSet, Component, ComponentEvent, FlaggedStorage, Join, ReadExpect, System, SystemData,
+        World, WriteStorage,
     },
     shrev::ReaderId,
+    SystemDesc,
 };
 use amethyst_window::ScreenDimensions;
+
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
 
 use super::*;
 
@@ -14,6 +18,7 @@ use super::*;
 ///
 /// The function in this component is also guaranteed to be called at least once by the
 /// `ResizeSystem` when either the component is attached, or the function is changed.
+#[allow(missing_debug_implementations)]
 pub struct UiResize {
     /// The core function of this component
     pub function: Box<dyn FnMut(&mut UiTransform, (f32, f32)) + Send + Sync>,
@@ -35,19 +40,40 @@ impl Component for UiResize {
     type Storage = FlaggedStorage<Self>;
 }
 
+/// Builds a `ResizeSystem`.
+#[derive(Default, Debug)]
+pub struct ResizeSystemDesc;
+
+impl<'a, 'b> SystemDesc<'a, 'b, ResizeSystem> for ResizeSystemDesc {
+    fn build(self, world: &mut World) -> ResizeSystem {
+        <ResizeSystem as System<'_>>::SystemData::setup(world);
+
+        let mut resize = WriteStorage::<UiResize>::fetch(&world);
+        let resize_events_id = resize.register_reader();
+
+        ResizeSystem::new(resize_events_id)
+    }
+}
+
 /// This system rearranges UI elements whenever the screen is resized using their `UiResize`
 /// component.
-#[derive(Default)]
+#[derive(Debug)]
 pub struct ResizeSystem {
     screen_size: (f32, f32),
-    resize_events_id: Option<ReaderId<ComponentEvent>>,
+    resize_events_id: ReaderId<ComponentEvent>,
     local_modified: BitSet,
 }
 
 impl ResizeSystem {
     /// Creates a new ResizeSystem that listens with the given reader Id.
-    pub fn new() -> ResizeSystem {
-        ResizeSystem::default()
+    pub fn new(resize_events_id: ReaderId<ComponentEvent>) -> ResizeSystem {
+        let screen_size = (0.0, 0.0);
+
+        ResizeSystem {
+            screen_size,
+            resize_events_id,
+            local_modified: BitSet::default(),
+        }
     }
 }
 
@@ -59,14 +85,14 @@ impl<'a> System<'a> for ResizeSystem {
     );
 
     fn run(&mut self, (mut transform, mut resize, dimensions): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("resize_system");
+
         self.local_modified.clear();
 
         let self_local_modified = &mut self.local_modified;
 
-        let self_resize_events_id = self
-            .resize_events_id
-            .as_mut()
-            .expect("`ResizeSystem::setup` was not called before `ResizeSystem::run`");
+        let self_resize_events_id = &mut self.resize_events_id;
         resize
             .channel()
             .read(self_resize_events_id)
@@ -103,13 +129,5 @@ impl<'a> System<'a> for ResizeSystem {
                 }
                 ComponentEvent::Removed(_id) => {}
             });
-    }
-
-    fn setup(&mut self, res: &mut Resources) {
-        use amethyst_core::ecs::prelude::SystemData;
-        Self::SystemData::setup(res);
-        self.screen_size = (0.0, 0.0);
-        let mut resize = WriteStorage::<UiResize>::fetch(res);
-        self.resize_events_id = Some(resize.register_reader());
     }
 }

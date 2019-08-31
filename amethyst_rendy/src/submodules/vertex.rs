@@ -43,15 +43,18 @@ impl<B: Backend, T: 'static> VertexDataBufferType for VertexData<B, T> {
     }
 }
 impl<B: Backend, T: 'static> VertexData<B, T> {
+    /// Bind a vertex buffer
     #[inline]
-    fn bind(
+    pub fn bind(
         binding_id: u32,
         encoder: &mut RenderPassEncoder<'_, B>,
         buffer: &Option<Escape<Buffer<B>>>,
         offset: u64,
     ) -> bool {
         if let Some(buffer) = buffer.as_ref() {
-            encoder.bind_vertex_buffers(binding_id, Some((buffer.raw(), offset)));
+            unsafe {
+                encoder.bind_vertex_buffers(binding_id, Some((buffer.raw(), offset)));
+            }
             return true;
         }
 
@@ -67,6 +70,7 @@ impl<B: Backend, T: 'static> VertexDataBufferType for IndexData<B, T> {
 }
 
 impl<B: Backend> IndexData<B, u16> {
+    /// Bind a 16-bit index buffer
     #[inline]
     pub fn bind(
         encoder: &mut RenderPassEncoder<'_, B>,
@@ -74,7 +78,9 @@ impl<B: Backend> IndexData<B, u16> {
         offset: u64,
     ) -> bool {
         if let Some(buffer) = buffer.as_ref() {
-            encoder.bind_index_buffer(buffer.raw(), offset, hal::IndexType::U16);
+            unsafe {
+                encoder.bind_index_buffer(buffer.raw(), offset, hal::IndexType::U16);
+            }
             return true;
         }
 
@@ -83,6 +89,7 @@ impl<B: Backend> IndexData<B, u16> {
 }
 
 impl<B: Backend> IndexData<B, u32> {
+    /// Bind a 32-bit index buffer
     #[inline]
     pub fn bind(
         _: u32,
@@ -91,7 +98,9 @@ impl<B: Backend> IndexData<B, u32> {
         offset: u64,
     ) -> bool {
         if let Some(buffer) = buffer.as_ref() {
-            encoder.bind_index_buffer(buffer.raw(), offset, hal::IndexType::U32);
+            unsafe {
+                encoder.bind_index_buffer(buffer.raw(), offset, hal::IndexType::U32);
+            }
             return true;
         }
 

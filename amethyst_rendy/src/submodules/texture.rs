@@ -1,3 +1,4 @@
+//! Texture submodule for per-image submission.
 use crate::{
     rendy::{
         command::RenderPassEncoder,
@@ -9,7 +10,7 @@ use crate::{
     util,
 };
 use amethyst_assets::{AssetStorage, Handle};
-use amethyst_core::ecs::{Read, Resources, SystemData};
+use amethyst_core::ecs::{Read, SystemData, World};
 
 #[cfg(feature = "profiler")]
 use thread_profiler::profile_scope;
@@ -28,9 +29,11 @@ enum TextureState<B: Backend> {
     },
 }
 
+/// Texture ID newtype, preventing users from creating arbitrary `TextureId`. Represented as a `u32`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextureId(u32);
 
+/// Texture helper submodule for allocating and binding textures and abstracting per-image submissions.
 #[derive(Debug)]
 pub struct TextureSub<B: Backend> {
     generation: u32,
@@ -40,25 +43,29 @@ pub struct TextureSub<B: Backend> {
 }
 
 impl<B: Backend> TextureSub<B> {
+    /// Create a new Texture for submission, allocated using the provided `Factory`
     pub fn new(factory: &Factory<B>) -> Result<Self, failure::Error> {
         Ok(Self {
-            layout: set_layout! {factory, [1] CombinedImageSampler FRAGMENT},
+            layout: set_layout! {factory, [1] CombinedImageSampler hal::pso::ShaderStageFlags::FRAGMENT},
             lookup: util::LookupBuilder::new(),
             textures: Vec::with_capacity(1024),
             generation: 0,
         })
     }
 
+    /// Returns the raw `DescriptorSetLayout` for a Texture
     pub fn raw_layout(&self) -> &B::DescriptorSetLayout {
         self.layout.raw()
     }
 
-    pub fn maintain(&mut self, factory: &Factory<B>, res: &Resources) {
+    /// Generationally track our currently allocated vs. used textures and release memory for any
+    /// textures which have been removed from this submission set.
+    pub fn maintain(&mut self, factory: &Factory<B>, world: &World) {
         #[cfg(feature = "profiler")]
         profile_scope!("maintain");
 
         use util::{desc_write, texture_desc};
-        let tex_storage = <(Read<'_, AssetStorage<Texture>>)>::fetch(res);
+        let tex_storage = <(Read<'_, AssetStorage<Texture>>)>::fetch(world);
         for state in self.textures.iter_mut() {
             match state {
                 TextureState::Loaded {
@@ -95,10 +102,11 @@ impl<B: Backend> TextureSub<B> {
         self.generation += self.generation.wrapping_add(1);
     }
 
+    /// Try to insert a new texture for submission in this texture batch. Returns None if it fails.
     fn try_insert(
         &mut self,
         factory: &Factory<B>,
-        res: &Resources,
+        world: &World,
         handle: &Handle<Texture>,
         layout: hal::image::Layout,
     ) -> Option<TextureState<B>> {
@@ -106,7 +114,7 @@ impl<B: Backend> TextureSub<B> {
         profile_scope!("try_insert");
 
         use util::{desc_write, texture_desc};
-        let tex_storage = <(Read<'_, AssetStorage<Texture>>)>::fetch(res);
+        let tex_storage = <(Read<'_, AssetStorage<Texture>>)>::fetch(world);
 
         let (tex, version) = tex_storage.get_with_version(handle)?;
         let desc = texture_desc(tex, layout)?;
@@ -124,10 +132,11 @@ impl<B: Backend> TextureSub<B> {
         })
     }
 
+    /// Try to insert a new texture for submission in this texture batch.
     pub fn insert(
         &mut self,
         factory: &Factory<B>,
-        res: &Resources,
+        world: &World,
         handle: &Handle<Texture>,
         layout: hal::image::Layout,
     ) -> Option<(TextureId, bool)> {
@@ -146,7 +155,7 @@ impl<B: Backend> TextureSub<B> {
         };
 
         let (new_state, loaded) = self
-            .try_insert(factory, res, handle, layout)
+            .try_insert(factory, world, handle, layout)
             .map(|s| (s, true))
             .unwrap_or_else(|| {
                 (
@@ -170,6 +179,7 @@ impl<B: Backend> TextureSub<B> {
         }
     }
 
+    /// Returns true of the supplied `TextureId` is already loaded.
     #[inline]
     pub fn loaded(&self, texture_id: TextureId) -> bool {
         match &self.textures[texture_id.0 as usize] {
@@ -178,6 +188,7 @@ impl<B: Backend> TextureSub<B> {
         }
     }
 
+    /// Bind all textures
     #[inline]
     pub fn bind(
         &self,
@@ -187,14 +198,14 @@ impl<B: Backend> TextureSub<B> {
         encoder: &mut RenderPassEncoder<'_, B>,
     ) {
         match &self.textures[texture_id.0 as usize] {
-            TextureState::Loaded { set, .. } => {
+            TextureState::Loaded { set, .. } => unsafe {
                 encoder.bind_graphics_descriptor_sets(
                     pipeline_layout,
                     set_id,
                     Some(set.raw()),
                     std::iter::empty(),
                 );
-            }
+            },
             _ => panic!("Trying to bind unloaded texture"),
         }
     }

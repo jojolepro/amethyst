@@ -1,14 +1,17 @@
+//! Transparency, visibility sorting and camera centroid culling for 2D Sprites.
 use crate::{
     camera::{ActiveCamera, Camera},
     transparent::Transparent,
 };
 use amethyst_core::{
-    ecs::prelude::{Entities, Entity, Join, Read, ReadStorage, System, Write},
-    math::{self as na, ComplexField, Point3, Vector3},
-    Float, Hidden, HiddenPropagate, Transform,
+    ecs::{
+        hibitset::BitSet,
+        prelude::{Entities, Entity, Join, Read, ReadStorage, System, Write},
+    },
+    math::{Point3, Vector3},
+    Hidden, HiddenPropagate, Transform,
 };
 use derivative::Derivative;
-use hibitset::BitSet;
 use std::cmp::Ordering;
 
 #[cfg(feature = "profiler")]
@@ -16,7 +19,7 @@ use thread_profiler::profile_scope;
 
 /// Resource for controlling what entities should be rendered, and whether to draw them ordered or
 /// not, which is useful for transparent surfaces.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct SpriteVisibility {
     /// Visible entities that can be drawn in any order
     pub visible_unordered: BitSet,
@@ -33,19 +36,19 @@ pub struct SpriteVisibility {
 /// Note that this should run after `Transform` has been updated for the current frame, and
 /// before rendering occurs.
 #[derive(Derivative)]
-#[derivative(Default(bound = ""))]
+#[derivative(Default(bound = ""), Debug(bound = ""))]
 pub struct SpriteVisibilitySortingSystem {
     centroids: Vec<Internals>,
     transparent: Vec<Internals>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Internals {
     entity: Entity,
     transparent: bool,
-    centroid: Point3<Float>,
-    camera_distance: Float,
-    from_camera: Vector3<Float>,
+    centroid: Point3<f32>,
+    camera_distance: f32,
+    from_camera: Vector3<f32>,
 }
 
 impl SpriteVisibilitySortingSystem {
@@ -61,7 +64,7 @@ impl<'a> System<'a> for SpriteVisibilitySortingSystem {
         Write<'a, SpriteVisibility>,
         ReadStorage<'a, Hidden>,
         ReadStorage<'a, HiddenPropagate>,
-        Option<Read<'a, ActiveCamera>>,
+        Read<'a, ActiveCamera>,
         ReadStorage<'a, Camera>,
         ReadStorage<'a, Transparent>,
         ReadStorage<'a, Transform>,
@@ -72,14 +75,15 @@ impl<'a> System<'a> for SpriteVisibilitySortingSystem {
         (entities, mut visibility, hidden, hidden_prop, active, camera, transparent, transform): Self::SystemData,
     ) {
         #[cfg(feature = "profiler")]
-        profile_scope!("run");
+        profile_scope!("sprite_visibility_sorting_system");
 
         let origin = Point3::origin();
 
         // The camera position is used to determine culling, but the sprites are ordered based on
         // the Z coordinate
         let camera: Option<&Transform> = active
-            .and_then(|a| transform.get(a.entity))
+            .entity
+            .and_then(|a| transform.get(a))
             .or_else(|| (&camera, &transform).join().map(|ct| ct.1).next());
         let camera_backward = camera
             .map(|c| c.global_matrix().column(2).xyz())
@@ -94,7 +98,7 @@ impl<'a> System<'a> for SpriteVisibilitySortingSystem {
                 .join()
                 .map(|(e, t, _, _)| (e, t.global_matrix().transform_point(&origin)))
                 // filter entities behind the camera
-                .filter(|(_, c)| (c - camera_centroid).dot(&camera_backward) < na::zero())
+                .filter(|(_, c)| (c - camera_centroid).dot(&camera_backward) < 0.0)
                 .map(|(entity, centroid)| Internals {
                     entity,
                     transparent: transparent.contains(entity),

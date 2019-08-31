@@ -2,16 +2,20 @@ use super::DemoState;
 use amethyst::{
     core::{
         math::{UnitQuaternion, Vector3},
-        Float, Time, Transform,
+        SystemDesc, Time, Transform,
     },
-    ecs::prelude::{Entity, Join, Read, ReadStorage, System, WriteExpect, WriteStorage},
+    derive::SystemDesc,
+    ecs::prelude::{
+        Entity, Join, Read, ReadStorage, System, SystemData, World, WriteExpect, WriteStorage,
+    },
     renderer::{camera::Camera, light::Light},
     ui::{UiFinder, UiText},
-    utils::fps_counter::FPSCounter,
+    utils::fps_counter::FpsCounter,
 };
 
-#[derive(Default)]
+#[derive(Default, SystemDesc)]
 pub struct ExampleSystem {
+    #[system_desc(skip)]
     fps_display: Option<Entity>,
 }
 
@@ -23,7 +27,7 @@ impl<'a> System<'a> for ExampleSystem {
         WriteStorage<'a, Transform>,
         WriteExpect<'a, DemoState>,
         WriteStorage<'a, UiText>,
-        Read<'a, FPSCounter>,
+        Read<'a, FpsCounter>,
         UiFinder<'a>,
     );
 
@@ -39,9 +43,9 @@ impl<'a> System<'a> for ExampleSystem {
         state.light_angle += light_angular_velocity * time.delta_seconds();
         state.camera_angle += camera_angular_velocity * time.delta_seconds();
 
-        let delta_rot: UnitQuaternion<Float> = UnitQuaternion::from_axis_angle(
+        let delta_rot: UnitQuaternion<f32> = UnitQuaternion::from_axis_angle(
             &Vector3::y_axis(),
-            (camera_angular_velocity * time.delta_seconds()).into(),
+            camera_angular_velocity * time.delta_seconds(),
         );
         for (_, transform) in (&camera, &mut transforms).join() {
             // Append the delta rotation to the current transform.
@@ -68,7 +72,7 @@ impl<'a> System<'a> for ExampleSystem {
             point_light.color = state.light_color;
         }
 
-        if let None = self.fps_display {
+        if self.fps_display.is_none() {
             if let Some(fps_entity) = finder.find("fps_text") {
                 self.fps_display = Some(fps_entity);
             }

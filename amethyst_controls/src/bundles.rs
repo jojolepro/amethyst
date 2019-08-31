@@ -1,6 +1,11 @@
 use std::marker::PhantomData;
 
-use amethyst_core::{bundle::SystemBundle, ecs::prelude::DispatcherBuilder, math::one, Float};
+use amethyst_core::{
+    bundle::SystemBundle,
+    ecs::prelude::{DispatcherBuilder, World},
+    math::one,
+    SystemDesc,
+};
 use amethyst_error::Error;
 use amethyst_input::BindingTypes;
 
@@ -27,10 +32,11 @@ use super::*;
 /// * `FreeRotationSystem`
 /// * `MouseFocusUpdateSystem`
 /// * `CursorHideSystem`
+#[derive(Debug)]
 pub struct FlyControlBundle<T: BindingTypes> {
     sensitivity_x: f32,
     sensitivity_y: f32,
-    speed: Float,
+    speed: f32,
     right_input_axis: Option<T::Axis>,
     up_input_axis: Option<T::Axis>,
     forward_input_axis: Option<T::Axis>,
@@ -61,35 +67,44 @@ impl<T: BindingTypes> FlyControlBundle<T> {
     }
 
     /// Alters the speed on this `FlyControlBundle`.
-    pub fn with_speed<N: Into<Float>>(mut self, speed: N) -> Self {
-        self.speed = speed.into();
+    pub fn with_speed(mut self, speed: f32) -> Self {
+        self.speed = speed;
         self
     }
 }
 
 impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for FlyControlBundle<T> {
-    fn build(self, builder: &mut DispatcherBuilder<'a, 'b>) -> Result<(), Error> {
+    fn build(
+        self,
+        world: &mut World,
+        builder: &mut DispatcherBuilder<'a, 'b>,
+    ) -> Result<(), Error> {
         builder.add(
-            FlyMovementSystem::<T>::new(
+            FlyMovementSystemDesc::<T>::new(
                 self.speed,
                 self.right_input_axis,
                 self.up_input_axis,
                 self.forward_input_axis,
-            ),
+            )
+            .build(world),
             "fly_movement",
             &[],
         );
         builder.add(
-            FreeRotationSystem::new(self.sensitivity_x, self.sensitivity_y),
+            FreeRotationSystemDesc::new(self.sensitivity_x, self.sensitivity_y).build(world),
             "free_rotation",
             &[],
         );
         builder.add(
-            MouseFocusUpdateSystem::new(),
+            MouseFocusUpdateSystemDesc::default().build(world),
             "mouse_focus",
             &["free_rotation"],
         );
-        builder.add(CursorHideSystem::new(), "cursor_hide", &["mouse_focus"]);
+        builder.add(
+            CursorHideSystemDesc::default().build(world),
+            "cursor_hide",
+            &["mouse_focus"],
+        );
         Ok(())
     }
 }
@@ -101,6 +116,7 @@ impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for FlyControlBundle<T> {
 /// Adding this bundle will grab the mouse, hide it and keep it centered.
 ///
 /// See the `arc_ball_camera` example to see how to use the arc ball camera.
+#[derive(Debug)]
 pub struct ArcBallControlBundle<T: BindingTypes> {
     sensitivity_x: f32,
     sensitivity_y: f32,
@@ -132,19 +148,27 @@ impl<T: BindingTypes> Default for ArcBallControlBundle<T> {
 }
 
 impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for ArcBallControlBundle<T> {
-    fn build(self, builder: &mut DispatcherBuilder<'a, 'b>) -> Result<(), Error> {
+    fn build(
+        self,
+        world: &mut World,
+        builder: &mut DispatcherBuilder<'a, 'b>,
+    ) -> Result<(), Error> {
         builder.add(ArcBallRotationSystem::default(), "arc_ball_rotation", &[]);
         builder.add(
-            FreeRotationSystem::new(self.sensitivity_x, self.sensitivity_y),
+            FreeRotationSystemDesc::new(self.sensitivity_x, self.sensitivity_y).build(world),
             "free_rotation",
             &[],
         );
         builder.add(
-            MouseFocusUpdateSystem::new(),
+            MouseFocusUpdateSystemDesc::default().build(world),
             "mouse_focus",
             &["free_rotation"],
         );
-        builder.add(CursorHideSystem::new(), "cursor_hide", &["mouse_focus"]);
+        builder.add(
+            CursorHideSystemDesc::default().build(world),
+            "cursor_hide",
+            &["mouse_focus"],
+        );
         Ok(())
     }
 }

@@ -1,4 +1,5 @@
 # Change Log
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog][kc], and this project adheres to
@@ -8,6 +9,115 @@ The format is based on [Keep a Changelog][kc], and this project adheres to
 [sv]: http://semver.org/
 
 ## [Unreleased]
+
+### Major breaking changes
+
+* Systems needing initialization with world resources must go through a `SystemDesc` intermediate builder. ([#1780])
+
+### Added
+
+* `SystemDesc` proc macro derive to simplify defining `SystemDesc`s. ([#1780])
+* `UiButtonData` is now exported from `amethyst_ui` and can be used for custom widgets. ([#1859])
+* Add an audio subchapter to the pong chapter. ([#1842])
+* Add `DispatcherOperation` to store dispatcher build logic, which can be executed lazily. ([#1870])
+* `AmethystApplication` takes in `SystemDesc`s through `with_system_desc`. ([#1882])
+* `AmethystApplication::with_thread_local_desc` takes in `RunNowDesc`. ([#1882])
+* Add `NineSlice` support to `UiImage`. ([#1896])
+* `RenderingBundle` for full manual control of the rendering pipeline via a custom `GraphCreator` ([#1839]).
+
+### Changed
+
+* All `-Builder` structs in amethyst_ui/prefab.rs are now called `-Data`. ([#1859])
+* `AmethystApplication` takes in a `System` instead of a closure for `with_system`. ([#1882])
+* `AmethystApplication::with_thread_local` constraint relaxed to `RunNow` (previously `System`). ([#1882])
+* `SystemDesc` proc macro supports `#[system_desc(event_reader_id)]` to register event reader. ([#1883])
+* `SystemDesc` proc macro supports `#[system_desc(flagged_storage_reader(Component))]`. ([#1886])
+* `DispatcherOperation` stores system name and dependencies as `String`s. ([#1891])
+* `TextureProcessor` renamed to `TextureProcessorSystem` ([#1839]).
+* `MeshProcessor` renamed to `MeshProcessorSystem` ([#1839]).
+
+### Fixed
+
+* `RenderingBundle` is registered last in all examples. ([#1881])
+
+[#1780]: https://github.com/amethyst/amethyst/pull/1780
+[#1859]: https://github.com/amethyst/amethyst/pull/1859
+[#1842]: https://github.com/amethyst/amethyst/pull/1842
+[#1870]: https://github.com/amethyst/amethyst/pull/1870
+[#1881]: https://github.com/amethyst/amethyst/pull/1881
+[#1882]: https://github.com/amethyst/amethyst/pull/1882
+[#1883]: https://github.com/amethyst/amethyst/pull/1883
+[#1886]: https://github.com/amethyst/amethyst/pull/1886
+[#1891]: https://github.com/amethyst/amethyst/pull/1891
+[#1896]: https://github.com/amethyst/amethyst/pull/1896
+[#1839]: https://github.com/amethyst/amethyst/pull/1839
+
+## [0.12.0] - 2019-07-30
+
+### Breaking changes
+
+* `Float` newtype removed, moved back to `f32` primitive for all values ([#1747])
+* `TextureProcessor` and `MeshProcessor` systems are now separated from `RenderingSystem` ([#1772])
+
+### Added
+
+* Add a feature flag `sentry` to disable the sentry dependency. ([#1804]) ([#1825])
+* Fixes and renames regression from ([#1442]) added back `position_from_world` as `screen_to_world`. Also added
+`world_to_screen`. Also adds `Transform::copy_local_to_global()' for `debug_assertion` builds ([#1733])
+* Add `add_rectangle`, `add_rotated_rectangle`, `add_box`, `add_rotated_box`, `add_circle`, `add_rotated_circle`,
+`add_cylinder`, `add_rotated_cylinder` and `add_sphere` functions to `DebugLinesComponent`
+and the corresponding draw functions to `DebugLines`, to draw simple shapes with debug lines. ([#1766])
+* `InputEvent::AxisMoved` is sent upon button press / release. ([#1512], [#1797])
+* `UiImage` is updated to allow for partial textures and sprites. ([#1809],[#1811])
+* Added `RenderingBundle` with a rendering plugin system, making rendering setup easier ([#1772])
+* Documentation for `Tint` component. ([#1802])
+
+### Changed
+
+* Splitted the `/resources` directory of amethyst projects into `/assets` and `/config`. ([#1806])
+* Rename FPSCounter, FPSCounterBundle, FPSCounterSystem to FpsCounter, FpsCounterBundle, FpsCounterSystem. ([#1719])
+* Add Tint component support for sprites. ([#1756])
+* Remove remaining <N: RealField> type parameter on GameDataBuilder, add Debug derive to LoggerConfig ([#1758])
+* Inverted mouse wheel scroll direction event. Now using winit's standard.  ([#1767])
+* Add `load_from_data_async` to Asset Loader. ([#1753])
+* Add `SerializableFormat` marker trait which is now needed to be implemented for all the formats that are supposed to be serialized. ([#1720])
+* Make the GltfSceneOptions field of GltfSceneFormat public. ([#1791])
+* Updated fluent to version 0.6. ([#1800])
+ `InputEvent<T>` now takes in the `BindingTypes` as a type parameter. ([#1797])
+* Use `crossbeam-queue` crate directly. ([#1822]) 
+
+### Fixed
+
+* Fix stack overflow on serializing `Box<dyn Format<_>>`. ([#1720])
+* Fix the steps for enabling the nightly flag in the pong tutorial. ([#1805])
+* Fix animation unwrap on missing animated component. ([#1773])
+* Fix tangent generation in procedural shapes. ([#1807])
+
+[#1512]: https://github.com/amethyst/amethyst/issues/1512
+[#1719]: https://github.com/amethyst/amethyst/pull/1719
+[#1720]: https://github.com/amethyst/amethyst/pull/1720
+[#1733]: https://github.com/amethyst/amethyst/pull/1733
+[#1747]: https://github.com/amethyst/amethyst/pull/1747
+[#1753]: https://github.com/amethyst/amethyst/pull/1753
+[#1756]: https://github.com/amethyst/amethyst/pull/1756
+[#1758]: https://github.com/amethyst/amethyst/pull/1758
+[#1766]: https://github.com/amethyst/amethyst/pull/1766
+[#1767]: https://github.com/amethyst/amethyst/pull/1719
+[#1772]: https://github.com/amethyst/amethyst/pull/1772
+[#1773]: https://github.com/amethyst/amethyst/pull/1773
+[#1791]: https://github.com/amethyst/amethyst/pull/1791
+[#1797]: https://github.com/amethyst/amethyst/pull/1797
+[#1800]: https://github.com/amethyst/amethyst/pull/1800
+[#1802]: https://github.com/amethyst/amethyst/pull/1802
+[#1804]: https://github.com/amethyst/amethyst/pull/1804
+[#1805]: https://github.com/amethyst/amethyst/pull/1805
+[#1807]: https://github.com/amethyst/amethyst/pull/1807
+[#1809]: https://github.com/amethyst/amethyst/issues/1809
+[#1811]: https://github.com/amethyst/amethyst/pull/1811
+[#1822]: https://github.com/amethyst/amethyst/pull/1822
+[#1825]: https://github.com/amethyst/amethyst/pull/1825
+
+## [0.11.0] - 2019-06
 
 ### Added
 
@@ -40,10 +150,12 @@ it is attached to. ([#1282])
 * Added `events` example which demonstrates working even reader and writer in action. ([#1538])
 *  Implement builder like functionality for `AnimationSet` and `AnimationControlSet` ([#1568])
 * Add `get_mouse_button` and `is_mouse_button_down` utility functions to amethyst_input. ([#1582])
-- Add amethyst_input::Axis::MouseWheel ([#1642])
-- Add amethyst_input::BindingError::MouseWheelAlreadyBound ([#1642])
-- Add amethyst_input::InputHandler::send_frame_begin ([#1642])
-- Add amethyst_input::InputHandler::mouse_wheel_value ([#1642])
+* Add `amethyst_input::Axis::MouseWheel` ([#1642])
+* Add `amethyst_input::BindingError::MouseWheelAlreadyBound` ([#1642])
+* Add `amethyst_input::InputHandler::send_frame_begin` ([#1642])
+* Add `amethyst_input::InputHandler::mouse_wheel_value` ([#1642])
+* Added `Float::from_f32` and `Float::from_f64` `const fn`s so `Float` can be used as `const`. ([#1687])
+* Add `debug_lines_ortho` example. ([#1703])
 
 ### Changed
 
@@ -101,6 +213,7 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 * Combined input axis/action generics into single type.
 * `Material` is now an asset. Must be turned into handle before putting on an entity.
 * Removed `Flipped` component. Use `flip_horizontal` and `flip_vertical` sprite property instead.
+* Added [Rendy migration guide][rendy_migration]. ([#1626])
 
 ### Removed
 
@@ -118,6 +231,7 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 * Fix tuple index generation on `PrefabData` and `EventReader` proc macros. ([#1501])
 * Avoid segmentation fault on Windows when using `AudioBundle` in `amethyst_test`. ([#1595], [#1599])
 
+[rendy_migration]: https://book.amethyst.rs/master/appendices/b_migration_notes/rendy_migration.html
 [#1114]: https://github.com/amethyst/amethyst/pull/1114
 [#1213]: https://github.com/amethyst/amethyst/pull/1213
 [#1237]: https://github.com/amethyst/amethyst/pull/1237
@@ -178,8 +292,11 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 [#1582]: https://github.com/amethyst/amethyst/pull/1582
 [#1595]: https://github.com/amethyst/amethyst/issues/1595
 [#1599]: https://github.com/amethyst/amethyst/pull/1599
+[#1626]: https://github.com/amethyst/amethyst/pull/1626
 [#1642]: https://github.com/amethyst/amethyst/pull/1642
 [#1683]: https://github.com/amethyst/amethyst/pull/1683
+[#1687]: https://github.com/amethyst/amethyst/pull/1687
+[#1703]: https://github.com/amethyst/amethyst/pull/1703
 
 ## [0.10.0] - 2018-12
 
@@ -875,7 +992,9 @@ extra bounds from `AnimatablePrefab` and `AnimationSetPrefab` ([#1435])
 
 * Initial release
 
-[Unreleased]: https://github.com/amethyst/amethyst/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/amethyst/amethyst/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/amethyst/amethyst/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/amethyst/amethyst/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/amethyst/amethyst/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/amethyst/amethyst/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/amethyst/amethyst/compare/v0.5.1...v0.7.0

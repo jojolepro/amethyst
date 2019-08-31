@@ -1,19 +1,25 @@
 //! Utility to adjust the aspect ratio of cameras automatically
 
 use amethyst_assets::PrefabData;
-use amethyst_core::ecs::{
-    Component, Entity, HashMapStorage, Join, ReadExpect, ReadStorage, Resources, System,
-    SystemData, WriteStorage,
+use amethyst_core::{
+    ecs::{
+        Component, Entity, HashMapStorage, Join, ReadExpect, ReadStorage, System, SystemData,
+        World, WriteStorage,
+    },
+    SystemDesc,
 };
-use amethyst_derive::PrefabData;
+use amethyst_derive::{PrefabData, SystemDesc};
 use amethyst_error::Error;
 use amethyst_rendy::camera::Camera;
 use amethyst_window::ScreenDimensions;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
+
 /// A component describing the behavior of the camera in accordance with the screen dimensions
-#[derive(Clone, Deserialize, PrefabData, Serialize)]
+#[derive(Clone, Debug, Deserialize, PrefabData, Serialize)]
 #[prefab(Component)]
 #[serde(default)]
 pub struct AutoFov {
@@ -171,9 +177,9 @@ impl AutoFov {
         assert!(
             max >= min,
             format!(
-                "`max_fovx` should be larger than or equal to `min_fovx` which is `{}`, but `{}` given",
-                min,
-                max,
+                "`max_fovx` should be larger than or equal to `min_fovx` which is `{}`, but `{}` \
+                 given",
+                min, max,
             ),
         );
         self.min_fovx = min;
@@ -208,7 +214,8 @@ impl Component for AutoFov {
 impl Default for AutoFov {
     fn default() -> Self {
         AutoFov {
-            base_fovx: 1.861_684_535,
+            // This is actually 1.861_684_535, but float precision is lost beyond this
+            base_fovx: 1.861_684_6,
             fovx_growth_rate: 1.0,
             fixed_growth_rate: false,
             base_aspect_ratio: (16, 9),
@@ -226,8 +233,18 @@ impl Default for AutoFov {
 /// If the camera is being loaded by a prefab, it is best to have the `PrefabLoaderSystem` loading
 /// the camera as a dependency of this system. It enables the system to adjust the camera right
 /// after it is created -- simply put, in the same frame.
+#[derive(Debug, SystemDesc)]
 pub struct AutoFovSystem {
     last_dimensions: ScreenDimensions,
+}
+
+impl AutoFovSystem {
+    /// Sets up `SystemData` and returns a new `AutoFovSystem`.
+    pub fn new() -> Self {
+        Self {
+            last_dimensions: ScreenDimensions::new(0, 0, 0.0),
+        }
+    }
 }
 
 impl<'a> System<'a> for AutoFovSystem {
@@ -237,11 +254,10 @@ impl<'a> System<'a> for AutoFovSystem {
         WriteStorage<'a, Camera>,
     );
 
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
-    }
-
     fn run(&mut self, (screen, auto_fovs, mut cameras): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("auto_fov_system");
+
         if self.last_dimensions != *screen {
             for (camera, auto_fov) in (&mut cameras, &auto_fovs).join() {
                 if let Some(perspective) = camera.projection_mut().as_perspective_mut() {

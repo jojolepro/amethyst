@@ -5,6 +5,9 @@ use amethyst_core::{
     Hidden, Time,
 };
 
+#[cfg(feature = "profiler")]
+use thread_profiler::profile_scope;
+
 /// # Blink Component
 /// Periodically adds and removes a `Hidden` Component on the entity this is attached to.
 ///
@@ -14,6 +17,7 @@ use amethyst_core::{
 ///
 /// During the second half period, the entity is invisible.
 /// [delay/2, delay]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Blink {
     /// Period of a full blink cycle.
     pub delay: f32,
@@ -28,6 +32,7 @@ impl Component for Blink {
 }
 
 /// System updating the `Blink` component.
+#[derive(Debug)]
 pub struct BlinkSystem;
 
 impl<'a> System<'a> for BlinkSystem {
@@ -39,6 +44,9 @@ impl<'a> System<'a> for BlinkSystem {
     );
 
     fn run(&mut self, (entities, mut hiddens, mut blinks, time): Self::SystemData) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("blink_system");
+
         let abs_sec = time.delta_seconds();
         let abs_unscaled_sec = time.delta_real_seconds();
 

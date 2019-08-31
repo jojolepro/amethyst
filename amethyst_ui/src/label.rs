@@ -2,12 +2,11 @@ use crate::{
     define_widget, font::default::get_default_font, Anchor, FontAsset, FontHandle, Stretch, UiText,
     UiTransform, WidgetId, Widgets,
 };
-use shred::SystemData;
-use shred_derive::SystemData;
 
 use amethyst_assets::{AssetStorage, Loader};
-use amethyst_core::ecs::prelude::{
-    Entities, Entity, Read, ReadExpect, World, WriteExpect, WriteStorage,
+use amethyst_core::ecs::{
+    prelude::{Entities, Entity, Read, ReadExpect, World, WriteExpect, WriteStorage},
+    shred::{ResourceId, SystemData},
 };
 
 const DEFAULT_Z: f32 = 1.0;
@@ -24,6 +23,7 @@ define_widget!(UiLabel =>
 );
 
 /// Container for all the resources the builder needs to make a new UiLabel.
+#[allow(missing_debug_implementations)]
 #[derive(SystemData)]
 pub struct UiLabelBuilderResources<'a, I: WidgetId = u32>
 where
@@ -38,6 +38,7 @@ where
 }
 
 /// Convenience structure for building a label
+#[derive(Debug)]
 pub struct UiLabelBuilder<I = u32>
 where
     I: WidgetId,
@@ -215,6 +216,6 @@ where
 
     /// Create the UiLabel based on provided configuration parameters.
     pub fn build_from_world(self, world: &World) -> (I, UiLabel) {
-        self.build(UiLabelBuilderResources::<I>::fetch(&world.res))
+        self.build(UiLabelBuilderResources::<I>::fetch(&world))
     }
 }

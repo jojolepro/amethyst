@@ -1,14 +1,19 @@
 use crate::{
     glyphs::{UiGlyphs, UiGlyphsResource},
-    Selected, TextEditing, UiImage, UiTransform,
+    Selected, TextEditing, UiGlyphsSystemDesc, UiImage, UiTransform,
 };
 use amethyst_assets::{AssetStorage, Handle, Loader};
 use amethyst_core::{
-    ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, Resources, SystemData},
-    Hidden, HiddenPropagate,
+    ecs::{
+        hibitset::BitSet, DispatcherBuilder, Entities, Entity, Join, Read, ReadExpect, ReadStorage,
+        SystemData, World,
+    },
+    Hidden, HiddenPropagate, SystemDesc,
 };
+use amethyst_error::Error;
 use amethyst_rendy::{
     batch::OrderedOneLevelBatch,
+    bundle::{RenderOrder, RenderPlan, RenderPlugin, Target},
     palette,
     pipeline::{PipelineDescBuilder, PipelinesBuilder},
     rendy::{
@@ -32,16 +37,57 @@ use amethyst_rendy::{
     simple_shader_set,
     submodules::{DynamicUniform, DynamicVertexBuffer, TextureId, TextureSub},
     types::{Backend, Texture},
-    ChangeDetection,
+    ChangeDetection, SpriteSheet,
 };
 use amethyst_window::ScreenDimensions;
 use derivative::Derivative;
 use glsl_layout::{vec2, vec4, AsStd140};
-use hibitset::BitSet;
 use std::cmp::Ordering;
 
 #[cfg(feature = "profiler")]
 use thread_profiler::profile_scope;
+
+/// A [RenderPlugin] for rendering UI elements.
+#[derive(Debug, Default)]
+pub struct RenderUi {
+    target: Target,
+}
+
+impl RenderUi {
+    /// Select render target on which UI should be rendered.
+    pub fn with_target(mut self, target: Target) -> Self {
+        self.target = target;
+        self
+    }
+}
+
+impl<B: Backend> RenderPlugin<B> for RenderUi {
+    fn on_build<'a, 'b>(
+        &mut self,
+        world: &mut World,
+        builder: &mut DispatcherBuilder<'a, 'b>,
+    ) -> Result<(), Error> {
+        builder.add(
+            UiGlyphsSystemDesc::<B>::default().build(world),
+            "ui_glyphs_system",
+            &[],
+        );
+        Ok(())
+    }
+
+    fn on_plan(
+        &mut self,
+        plan: &mut RenderPlan<B>,
+        _factory: &mut Factory<B>,
+        _world: &World,
+    ) -> Result<(), Error> {
+        plan.extend_target(self.target, |ctx| {
+            ctx.add(RenderOrder::Overlay, DrawUiDesc::new().builder())?;
+            Ok(())
+        });
+        Ok(())
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, AsStd140)]
 #[repr(C, align(4))]
@@ -50,6 +96,7 @@ pub(crate) struct UiArgs {
     pub(crate) dimensions: vec2,
     pub(crate) tex_coord_bounds: vec4,
     pub(crate) color: vec4,
+    pub(crate) color_bias: vec4,
 }
 
 impl AsVertex for UiArgs {
@@ -59,6 +106,7 @@ impl AsVertex for UiArgs {
             (Format::Rg32Sfloat, "dimensions"),
             (Format::Rgba32Sfloat, "tex_coord_bounds"),
             (Format::Rgba32Sfloat, "color"),
+            (Format::Rgba32Sfloat, "color_bias"),
         ))
     }
 }
@@ -93,19 +141,22 @@ impl DrawUiDesc {
     }
 }
 
-impl<B: Backend> RenderGroupDesc<B, Resources> for DrawUiDesc {
-    fn build<'a>(
+impl<B: Backend> RenderGroupDesc<B, World> for DrawUiDesc {
+    fn build(
         self,
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        resources: &Resources,
+        resources: &World,
         framebuffer_width: u32,
         framebuffer_height: u32,
         subpass: hal::pass::Subpass<'_, B>,
         _buffers: Vec<NodeBuffer>,
         _images: Vec<NodeImage>,
-    ) -> Result<Box<dyn RenderGroup<B, Resources>>, failure::Error> {
+    ) -> Result<Box<dyn RenderGroup<B, World>>, failure::Error> {
+        #[cfg(feature = "profiler")]
+        profile_scope!("build");
+
         let env = DynamicUniform::new(factory, pso::ShaderStageFlags::VERTEX)?;
         let textures = TextureSub::new(factory)?;
         let vertex = DynamicVertexBuffer::new();
@@ -161,15 +212,18 @@ struct CachedDrawOrder {
     pub cache: Vec<(f32, Entity)>,
 }
 
-impl<B: Backend> RenderGroup<B, Resources> for DrawUi<B> {
+impl<B: Backend> RenderGroup<B, World> for DrawUi<B> {
     fn prepare(
         &mut self,
         factory: &Factory<B>,
         _queue: QueueId,
         index: usize,
         _subpass: hal::pass::Subpass<'_, B>,
-        resources: &Resources,
+        resources: &World,
     ) -> PrepareResult {
+        #[cfg(feature = "profiler")]
+        profile_scope!("prepare");
+
         let (
             entities,
             images,
@@ -308,7 +362,7 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawUi<B> {
             };
 
             if let Some(glyph_data) = glyphs.get(entity) {
-                if !glyph_data.vertices.is_empty() {
+                if !glyph_data.sel_vertices.is_empty() {
                     self.batches
                         .insert(white_tex_id, glyph_data.sel_vertices.iter().cloned());
                 }
@@ -352,6 +406,7 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawUi<B> {
                                 dimensions: [w, h].into(),
                                 tex_coord_bounds: [0., 0., 1., 1.].into(),
                                 color: tint.unwrap_or([1., 1., 1., 1.]).into(),
+                                color_bias: [0., 0., 0., 0.].into(),
                             }),
                         )
                     }
@@ -366,21 +421,27 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawUi<B> {
 
         self.textures.maintain(factory, resources);
         changed = changed || self.batches.changed();
-        self.vertex.write(
-            factory,
-            index,
-            self.batches.count() as u64,
-            Some(self.batches.data()),
-        );
 
-        let view_args = UiViewArgs {
-            inverse_window_size: [
-                1.0 / screen_dimesnions.width() as f32,
-                1.0 / screen_dimesnions.height() as f32,
-            ]
-            .into(),
-        };
-        changed = self.env.write(factory, index, view_args.std140()) || changed;
+        {
+            #[cfg(feature = "profiler")]
+            profile_scope!("write");
+
+            self.vertex.write(
+                factory,
+                index,
+                self.batches.count() as u64,
+                Some(self.batches.data()),
+            );
+
+            let view_args = UiViewArgs {
+                inverse_window_size: [
+                    1.0 / screen_dimesnions.width() as f32,
+                    1.0 / screen_dimesnions.height() as f32,
+                ]
+                .into(),
+            };
+            changed = self.env.write(factory, index, view_args.std140()) || changed;
+        }
 
         self.change.prepare_result(index, changed)
     }
@@ -390,8 +451,11 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawUi<B> {
         mut encoder: RenderPassEncoder<'_, B>,
         index: usize,
         _subpass: hal::pass::Subpass<'_, B>,
-        _resources: &Resources,
+        _resources: &World,
     ) {
+        #[cfg(feature = "profiler")]
+        profile_scope!("draw");
+
         if self.batches.count() > 0 {
             let layout = &self.pipeline_layout;
             encoder.bind_graphics_pipeline(&self.pipeline);
@@ -399,12 +463,14 @@ impl<B: Backend> RenderGroup<B, Resources> for DrawUi<B> {
             self.vertex.bind(index, 0, 0, &mut encoder);
             for (&tex, range) in self.batches.iter() {
                 self.textures.bind(layout, 1, tex, &mut encoder);
-                encoder.draw(0..4, range);
+                unsafe {
+                    encoder.draw(0..4, range);
+                }
             }
         }
     }
 
-    fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &Resources) {
+    fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
         unsafe {
             factory.device().destroy_graphics_pipeline(self.pipeline);
             factory
@@ -468,7 +534,7 @@ fn mul_blend(a: &[f32; 4], b: &[f32; 4]) -> [f32; 4] {
 
 fn render_image<B: Backend>(
     factory: &Factory<B>,
-    resources: &Resources,
+    resources: &World,
     transform: &UiTransform,
     raw_image: &UiImage,
     tint: &Option<[f32; 4]>,
@@ -483,11 +549,25 @@ fn render_image<B: Backend>(
         (_, None) => [1., 1., 1., 1.],
     };
 
+    let tex_coords = match raw_image {
+        UiImage::Sprite(sprite_renderer) => {
+            let sprite_sheets = resources.fetch::<AssetStorage<SpriteSheet>>();
+            if let Some(sprite_sheet) = sprite_sheets.get(&sprite_renderer.sprite_sheet) {
+                (&sprite_sheet.sprites[sprite_renderer.sprite_number].tex_coords).into()
+            } else {
+                [0.0_f32, 0., 1., 1.]
+            }
+        }
+        UiImage::PartialTexture(_, tex_coord) => tex_coord.into(),
+        _ => [0.0_f32, 0., 1., 1.],
+    };
+
     let args = UiArgs {
         coords: [transform.pixel_x(), transform.pixel_y()].into(),
         dimensions: [transform.pixel_width, transform.pixel_height].into(),
-        tex_coord_bounds: [0., 0., 1., 1.].into(),
+        tex_coord_bounds: tex_coords.into(),
         color: color.into(),
+        color_bias: [0., 0., 0., 0.].into(),
     };
 
     match raw_image {
@@ -499,6 +579,115 @@ fn render_image<B: Backend>(
                 hal::image::Layout::ShaderReadOnlyOptimal,
             ) {
                 batches.insert(tex_id, Some(args));
+                this_changed
+            } else {
+                false
+            }
+        }
+        UiImage::PartialTexture(tex, _) => {
+            if let Some((tex_id, this_changed)) = textures.insert(
+                factory,
+                resources,
+                tex,
+                hal::image::Layout::ShaderReadOnlyOptimal,
+            ) {
+                batches.insert(tex_id, Some(args));
+                this_changed
+            } else {
+                false
+            }
+        }
+        UiImage::Sprite(sprite_renderer) => {
+            let sprite_sheets = resources.fetch::<AssetStorage<SpriteSheet>>();
+            if let Some(sprite_sheet) = sprite_sheets.get(&sprite_renderer.sprite_sheet) {
+                if let Some((tex_id, this_changed)) = textures.insert(
+                    factory,
+                    resources,
+                    &sprite_sheet.texture,
+                    hal::image::Layout::ShaderReadOnlyOptimal,
+                ) {
+                    batches.insert(tex_id, Some(args));
+                    this_changed
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        UiImage::NineSlice {
+            x_start,
+            y_start,
+            width,
+            height,
+            left_dist,
+            right_dist,
+            top_dist,
+            bottom_dist,
+            tex,
+            texture_dimensions,
+        } => {
+            if let Some((tex_id, this_changed)) = textures.insert(
+                factory,
+                resources,
+                tex,
+                hal::image::Layout::ShaderReadOnlyOptimal,
+            ) {
+                //The texture locations of each slice
+                let x_tex_coord_bound = [
+                    *x_start as f32 / texture_dimensions[0] as f32,
+                    (*x_start + *left_dist) as f32 / texture_dimensions[0] as f32,
+                    (*x_start + *width - *right_dist) as f32 / texture_dimensions[0] as f32,
+                    (*x_start + *width) as f32 / texture_dimensions[0] as f32,
+                ];
+                let y_tex_coord_bound = [
+                    *y_start as f32 / texture_dimensions[1] as f32,
+                    (*y_start + *top_dist) as f32 / texture_dimensions[1] as f32,
+                    (*y_start + *height - *bottom_dist) as f32 / texture_dimensions[1] as f32,
+                    (*y_start + *height) as f32 / texture_dimensions[1] as f32,
+                ];
+
+                //The dimensions of each slice
+                let x_dimensions = [
+                    *left_dist as f32,
+                    transform.pixel_width - (*right_dist + *left_dist) as f32,
+                    *right_dist as f32,
+                ];
+                let y_dimensions = [
+                    *top_dist as f32,
+                    transform.pixel_height - (*top_dist + *bottom_dist) as f32,
+                    *bottom_dist as f32,
+                ];
+
+                //The center location of each slice on the screen
+                let x_coords = [
+                    transform.pixel_x() - ((transform.pixel_width - *left_dist as f32) / 2.0),
+                    transform.pixel_x() + (*left_dist as f32 - *right_dist as f32) / 2.0,
+                    transform.pixel_x() + ((transform.pixel_width - *right_dist as f32) / 2.0),
+                ];
+                let y_coords = [
+                    transform.pixel_y() + ((transform.pixel_height - *top_dist as f32) / 2.0),
+                    transform.pixel_y() + (*bottom_dist as f32 - *top_dist as f32) / 2.0,
+                    transform.pixel_y() - ((transform.pixel_height - *bottom_dist as f32) / 2.0),
+                ];
+
+                // loop through left to right, the top to bottom and batch each slice to render
+                for x in 0..3 {
+                    for y in 0..3 {
+                        let mut temp_args = args;
+                        temp_args.tex_coord_bounds = [
+                            x_tex_coord_bound[x],
+                            y_tex_coord_bound[y],
+                            x_tex_coord_bound[x + 1],
+                            y_tex_coord_bound[y + 1],
+                        ]
+                        .into();
+                        temp_args.dimensions = [x_dimensions[x], y_dimensions[y]].into();
+                        temp_args.coords = [x_coords[x], y_coords[y]].into();
+                        batches.insert(tex_id, Some(temp_args));
+                    }
+                }
+
                 this_changed
             } else {
                 false

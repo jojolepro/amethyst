@@ -2,9 +2,9 @@
 
 ## What is a state?
 The word "state" can mean a lot of different things in computer science.
-In the case of amethyst, it is used to represent the "game stage".
+In the case of amethyst, it is used to represent the "game state".
 
-A game stage is a *general* and *global* section of the game.
+A game state is a *general* and *global* section of the game.
 
 ## Example
 
@@ -188,7 +188,7 @@ To change the set of events that the state receives, you create a new event enum
 
 // These imports are required for the #[derive(EventReader)] code to build
 use amethyst::core::{
-    ecs::{Read, SystemData, Resources},
+    ecs::{Read, SystemData, World},
     shrev::{ReaderId, EventChannel},
     EventReader
 };

@@ -7,17 +7,18 @@ use crate::{
 use amethyst_assets::{AssetStorage, Handle};
 use amethyst_core::{
     ecs::{
-        Component, DenseVecStorage, Entities, Join, Read, ReadStorage, Resources, System,
-        SystemData, Write, WriteExpect, WriteStorage,
+        Component, DenseVecStorage, Entities, Join, Read, ReadStorage, System, SystemData, World,
+        Write, WriteExpect, WriteStorage,
     },
-    Hidden, HiddenPropagate,
+    Hidden, HiddenPropagate, SystemDesc,
 };
+use amethyst_derive::SystemDesc;
 use amethyst_rendy::{
     rendy::{
         command::QueueId,
         factory::{Factory, ImageState},
         hal,
-        texture::{pixel::R8Srgb, TextureBuilder},
+        texture::{pixel::R8Unorm, TextureBuilder},
     },
     resources::Tint,
     Backend, Texture,
@@ -40,6 +41,7 @@ impl UiGlyphsResource {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct UiGlyphs {
     pub(crate) sel_vertices: Vec<UiArgs>,
     pub(crate) vertices: Vec<UiArgs>,
@@ -84,15 +86,20 @@ impl LineBreaker for CustomLineBreaker {
 }
 
 /// Manages the text editing cursor create, deletion and position.
+#[allow(missing_debug_implementations)]
+#[derive(SystemDesc)]
+#[system_desc(name(UiGlyphsSystemDesc))]
+#[system_desc(insert("UiGlyphsResource { glyph_tex: None }"))]
 pub struct UiGlyphsSystem<B: Backend> {
+    #[system_desc(skip)]
     glyph_brush: GlyphBrush<'static, (u32, UiArgs)>,
+    #[system_desc(skip)]
     fonts_map: HashMap<u32, FontState>,
     marker: PhantomData<B>,
 }
 
-impl<B: Backend> UiGlyphsSystem<B> {
-    /// Create new UI glyphs system
-    pub fn new() -> Self {
+impl<B: Backend> Default for UiGlyphsSystem<B> {
+    fn default() -> Self {
         Self {
             glyph_brush: GlyphBrushBuilder::using_fonts(vec![])
                 .initial_cache_size((512, 512))
@@ -103,13 +110,8 @@ impl<B: Backend> UiGlyphsSystem<B> {
     }
 }
 
-impl<B: Backend> Default for UiGlyphsSystem<B> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Option<Write<'a, Factory<B>>>,
         Option<Read<'a, QueueId>>,
@@ -152,6 +154,7 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
             } else {
                 // Rendering system not present which might be the case during testing.
                 // Just do nothing.
+                log::trace!("Rendering not present: glyphs processing skipped");
                 return;
             };
 
@@ -179,15 +182,16 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
         )
             .join()
         {
-            let font_lookup = fonts_map_ref.entry(ui_text.font.id()).or_insert_with(|| {
-                if let Some(font) = font_storage.get(&ui_text.font) {
-                    FontState::Ready(glyph_brush_ref.add_font(font.0.clone()))
-                } else {
-                    FontState::NotFound
-                }
-            });
-
             ui_text.cached_glyphs.clear();
+
+            let font_lookup = fonts_map_ref
+                .entry(ui_text.font.id())
+                .or_insert(FontState::NotFound);
+            if font_lookup.id().is_none() {
+                if let Some(font) = font_storage.get(&ui_text.font) {
+                    *font_lookup = FontState::Ready(glyph_brush_ref.add_font(font.0.clone()));
+                }
+            }
 
             if let Some(font_id) = font_lookup.id() {
                 let tint_color = tint.map_or([1., 1., 1., 1.], |t| {
@@ -327,6 +331,7 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
         loop {
             let action = glyph_brush_ref.process_queued(
                 |rect, data| unsafe {
+                    log::trace!("Upload glyph image at {:?}", rect);
                     factory
                         .upload_image(
                             tex.image().clone(),
@@ -410,6 +415,7 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
                     ];
                     let dims = [(coords_max_x - coords_min_x), (coords_max_y - coords_min_y)];
                     let tex_coord_bounds = [uv.min.x, uv.min.y, uv.max.x, uv.max.y];
+                    log::trace!("Push glyph for {}", entity_id);
                     (
                         entity_id,
                         UiArgs {
@@ -417,6 +423,7 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
                             dimensions: dims.into(),
                             tex_coord_bounds: tex_coord_bounds.into(),
                             color: glyph.color.into(),
+                            color_bias: [1., 1., 1., 0.].into(),
                         },
                     )
                 },
@@ -424,6 +431,7 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
 
             match action {
                 Ok(BrushAction::Draw(vertices)) => {
+                    log::trace!("Updating glyph data, len {}", vertices.len());
                     // entity ids are guaranteed to be in the same order as queued
                     let mut glyph_ctr = 0;
 
@@ -500,6 +508,7 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
                                 dimensions: [g.advance_width, height].into(),
                                 tex_coord_bounds: [0., 0., 1., 1.].into(),
                                 color: bg_color.into(),
+                                color_bias: [1., 1., 1., 0.].into(),
                             });
                             let mut glyph_data = glyphs.get_mut(entity).unwrap();
                             glyph_data.sel_vertices.extend(iter);
@@ -537,11 +546,6 @@ impl<'a, B: Backend> System<'a> for UiGlyphsSystem<B> {
             }
         }
     }
-
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
-        res.insert(UiGlyphsResource { glyph_tex: None });
-    }
 }
 
 fn create_glyph_texture<B: Backend>(
@@ -551,15 +555,17 @@ fn create_glyph_texture<B: Backend>(
     h: u32,
 ) -> Texture {
     use hal::format::{Component as C, Swizzle};
+    log::trace!("Creating new glyph texture with size ({}, {})", w, h);
+
     TextureBuilder::new()
         .with_kind(hal::image::Kind::D2(w, h, 1, 1))
         .with_view_kind(hal::image::ViewKind::D2)
         .with_data_width(w)
         .with_data_height(h)
-        .with_data(vec![R8Srgb { repr: [0] }; (w * h) as _])
-        // TODO: This will not work properly on metal :(
-        // need to add extra uniform and mask in shader for metal
-        .with_swizzle(Swizzle(C::One, C::One, C::One, C::R))
+        .with_data(vec![R8Unorm { repr: [0] }; (w * h) as _])
+        // This swizzle is required when working with `R8Unorm` on metal.
+        // Glyph texture is biased towards 1.0 using "color_bias" attribute instead.
+        .with_swizzle(Swizzle(C::Zero, C::Zero, C::Zero, C::R))
         .build(
             ImageState {
                 queue,

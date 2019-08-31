@@ -1,3 +1,5 @@
+//! EventReader Implementation
+
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use syn::{Data, DeriveInput, GenericParam, Ident, Lifetime, LifetimeDef, Meta, NestedMeta, Type};
@@ -86,7 +88,7 @@ pub enum SomeEvent {{
             let ty = &tys[n];
             let tuple_index = Literal::usize_unsuffixed(n);
             quote! {
-                self.#tuple_index = Some(res.fetch_mut::<EventChannel<#ty>>().register_reader());
+                self.#tuple_index = Some(world.fetch_mut::<EventChannel<#ty>>().register_reader());
             }
         })
         .collect();
@@ -109,8 +111,8 @@ pub enum SomeEvent {{
                 #(#reads)*
             }
 
-            fn setup(&mut self, res: &mut Resources) {
-                <Self::SystemData as SystemData<#reader_lifetime>>::setup(res);
+            fn setup(&mut self, world: &mut World) {
+                <Self::SystemData as SystemData<#reader_lifetime>>::setup(world);
                 #(#setups)*
             }
         }

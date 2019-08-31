@@ -12,13 +12,15 @@
 #[cfg(feature = "json")]
 pub use crate::formats::JsonFormat;
 pub use crate::{
-    asset::{Asset, Format, FormatValue, ProcessableAsset},
+    asset::{Asset, Format, FormatValue, ProcessableAsset, SerializableFormat},
     cache::Cache,
     dyn_format::FormatRegisteredData,
     formats::RonFormat,
     helper::AssetLoaderSystemData,
     loader::Loader,
-    prefab::{AssetPrefab, Prefab, PrefabData, PrefabLoader, PrefabLoaderSystem},
+    prefab::{
+        AssetPrefab, Prefab, PrefabData, PrefabLoader, PrefabLoaderSystem, PrefabLoaderSystemDesc,
+    },
     progress::{Completion, Progress, ProgressCounter, Tracker},
     reload::{HotReloadBundle, HotReloadStrategy, HotReloadSystem, Reload, SingleFile},
     source::{Directory, Source},

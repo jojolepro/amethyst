@@ -4,7 +4,6 @@ The names of several `Transform` methods have been changed in order to better re
 
 ## Summary
 
-* `Float` type has been added to wrap `f32` or `f64` for `Transform` coordinates.
 * `GlobalTransform` has been removed, and merged into `Transform`.
 * `set_*` translation methods have been renamed to `set_translation_*`
 * `*_local` transforms have been renamed to `append_*`.
@@ -14,10 +13,6 @@ The names of several `Transform` methods have been changed in order to better re
 * Method aliases for 2D rotation have have been added.
 * `set_rotation` methods have been added.
 * `euler_angles` method has been added.
-
-## `Float` Type
-
-A wrapper type around `f32` and `f64`. It is used to hide the actual type being used internally. Mostly used with the Transform type. The default type is `f32` and you can switch to the `f64` type by enabling the "float64" feature gate.
 
 ## Renamed Transform Methods (Breaking Changes)
 
@@ -116,7 +111,7 @@ A wrapper type around `f32` and `f64`. It is used to hide the actual type being 
 
 * Set Rotation
 
-    ```
+    ```rust,ignore
     transform.set_rotation(UnitQuaternion::identity());
     transform.set_rotation_x_axis(0.4);
     transform.set_rotation_y_axis(2.3);
@@ -128,13 +123,13 @@ A wrapper type around `f32` and `f64`. It is used to hide the actual type being 
 
     - `rotate_2d`, an alias for `prepend_rotation_z_axis`
 
-        ```
+        ```rust,ignore
         transform.rotate_2d(5.0);
         ```
 
     - `set_rotation_2d`, an alias for `set_rotation_z_axis`
 
-        ```
+        ```rust,ignore
         transform.set_rotation_2d(4.7);
         ```
 
@@ -142,6 +137,6 @@ A wrapper type around `f32` and `f64`. It is used to hide the actual type being 
 
     - Get the Euler angles of a transform's rotation.
 
-        ```
+        ```rust,ignore
         let (x, y, z) = transform.euler_angles();
         ```

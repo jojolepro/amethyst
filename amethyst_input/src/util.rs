@@ -31,6 +31,16 @@ pub fn is_key_down(event: &Event, key_code: VirtualKeyCode) -> bool {
     false
 }
 
+/// Returns true if the event passed in is a key up event for the
+/// provided `VirtualKeyCode`.
+pub fn is_key_up(event: &Event, key_code: VirtualKeyCode) -> bool {
+    if let Some((key, state)) = get_key(event) {
+        return key == key_code && state == ElementState::Released;
+    }
+
+    false
+}
+
 /// Returns true if the event passed in is a request to close the game window.
 pub fn is_close_requested(event: &Event) -> bool {
     match *event {
@@ -47,7 +57,7 @@ pub fn is_close_requested(event: &Event) -> bool {
 pub fn get_input_axis_simple<T: BindingTypes>(
     name: &Option<T::Axis>,
     input: &InputHandler<T>,
-) -> f64 {
+) -> f32 {
     name.as_ref()
         .and_then(|ref n| input.axis_value(n))
         .unwrap_or(0.0)
@@ -69,8 +79,8 @@ pub fn get_mouse_button(event: &Event) -> Option<(MouseButton, ElementState)> {
 /// provided `MouseButton`.
 pub fn is_mouse_button_down(event: &Event, button: MouseButton) -> bool {
     if let Some((pressed_button, state)) = get_mouse_button(event) {
-        return pressed_button == button && state == ElementState::Pressed;
+        pressed_button == button && state == ElementState::Pressed
     } else {
-        return false;
+        false
     }
 }
