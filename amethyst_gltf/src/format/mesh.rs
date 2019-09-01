@@ -1,6 +1,7 @@
 use super::Buffers;
 use crate::{error, GltfSceneOptions};
 use amethyst_core::math::{zero, Vector3};
+use amethyst_core::ecs::*;
 use amethyst_error::Error;
 use amethyst_rendy::{
     rendy::mesh::{Color, MeshBuilder, Normal, Position, Tangent, TexCoord},
@@ -23,6 +24,15 @@ fn try_compute_if<T, F: Fn() -> Option<T>>(predicate: bool, func: F) -> Option<T
     } else {
         None
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct VerticeData {
+    pub vertices: Vec<[f32; 3]>,
+}
+
+impl Component for VerticeData {
+    type Storage = DenseVecStorage<Self>;
 }
 
 enum Indices {
@@ -53,7 +63,7 @@ pub fn load_mesh(
     mesh: &gltf::Mesh<'_>,
     buffers: &Buffers,
     options: &GltfSceneOptions,
-) -> Result<Vec<(MeshBuilder<'static>, Option<usize>, Range<[f32; 3]>)>, Error> {
+) -> Result<Vec<(MeshBuilder<'static>, Option<usize>, Range<[f32; 3]>, VerticeData)>, Error> {
     trace!("Loading mesh");
     let mut primitives = vec![];
 
@@ -77,6 +87,8 @@ pub fn load_mesh(
             .ok_or(error::Error::MissingPositions)?
             .map(Position)
             .collect::<Vec<_>>();
+
+        let vertice_data = VerticeData{vertices: reader.read_positions().ok_or(error::Error::MissingPositions)?.collect::<Vec<_>>()};
 
         let normals = compute_if(options.load_normals || options.load_tangents, || {
             trace!("Loading normals");
@@ -169,7 +181,7 @@ pub fn load_mesh(
         let bounds = bounds.min..bounds.max;
         let material = primitive.material().index();
 
-        primitives.push((builder, material, bounds));
+        primitives.push((builder, material, bounds, vertice_data));
     }
     trace!("Loaded mesh");
     Ok(primitives)

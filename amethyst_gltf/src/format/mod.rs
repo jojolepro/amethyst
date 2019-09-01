@@ -30,6 +30,8 @@ mod material;
 mod mesh;
 mod skin;
 
+pub use mesh::VerticeData;
+
 /// Gltf scene format, will load a single scene from a Gltf file.
 ///
 /// Using the `GltfSceneLoaderSystem` a `Handle<GltfSceneAsset>` from this format can be attached
@@ -234,10 +236,11 @@ fn load_node(
         let mut graphics = load_mesh(&mesh, buffers, options)?;
         if graphics.len() == 1 {
             // single primitive can be loaded directly onto the node
-            let (mesh, material_index, bounds) = graphics.remove(0);
+            let (mesh, material_index, bounds, vertice_data) = graphics.remove(0);
             bounding_box.extend_range(&bounds);
             let prefab_data = prefab.data_or_default(entity_index);
             prefab_data.mesh = Some(mesh);
+            prefab_data.vertice_data = Some(vertice_data);
             if let Some((material_id, material)) =
                 material_index.and_then(|index| gltf.materials().nth(index).map(|m| (index, m)))
             {
@@ -254,11 +257,12 @@ fn load_node(
         } else if graphics.len() > 1 {
             // if we have multiple primitives,
             // we need to add each primitive as a child entity to the node
-            for (mesh, material_index, bounds) in graphics {
+            for (mesh, material_index, bounds, vertice_data) in graphics {
                 let mesh_entity = prefab.add(Some(entity_index), None);
                 let prefab_data = prefab.data_or_default(mesh_entity);
                 prefab_data.transform = Some(Transform::default());
                 prefab_data.mesh = Some(mesh);
+                prefab_data.vertice_data = Some(vertice_data);
                 if let Some((material_id, material)) =
                     material_index.and_then(|index| gltf.materials().nth(index).map(|m| (index, m)))
                 {

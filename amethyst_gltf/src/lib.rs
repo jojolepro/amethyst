@@ -28,7 +28,7 @@ use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::Range};
 
-pub use crate::format::GltfSceneFormat;
+pub use crate::format::{GltfSceneFormat, VerticeData};
 
 mod error;
 mod format;
@@ -50,6 +50,8 @@ pub struct GltfPrefab {
     pub transform: Option<Transform>,
     /// `MeshData` is placed on all `Entity`s with graphics primitives
     pub mesh: Option<MeshBuilder<'static>>,
+    /// Hoppinworld vertice data from the mesh
+    pub vertice_data: Option<VerticeData>,
     /// Mesh handle after sub asset loading is done
     pub mesh_handle: Option<Handle<Mesh>>,
     /// `Material` is placed on all `Entity`s with graphics primitives with material
@@ -219,6 +221,7 @@ impl<'a> PrefabData<'a> for GltfPrefab {
         <SkinnablePrefab as PrefabData<'a>>::SystemData,
         WriteStorage<'a, BoundingSphere>,
         WriteStorage<'a, Handle<Mesh>>,
+        WriteStorage<'a, VerticeData>,
         Read<'a, AssetStorage<Mesh>>,
         ReadExpect<'a, Loader>,
         Write<'a, GltfMaterialSet>,
@@ -232,13 +235,16 @@ impl<'a> PrefabData<'a> for GltfPrefab {
         entities: &[Entity],
         children: &[Entity],
     ) -> Result<(), Error> {
-        let (transforms, names, materials, animatables, skinnables, bound, meshes, _, _, _) =
+        let (transforms, names, materials, animatables, skinnables, bound, meshes, vertices, _, _, _) =
             system_data;
         if let Some(transform) = &self.transform {
             transform.add_to_entity(entity, transforms, entities, children)?;
         }
         if let Some(mesh) = &self.mesh_handle {
             meshes.insert(entity, mesh.clone())?;
+        }
+        if let Some(vertice_data) = &self.vertice_data {
+            vertices.insert(entity, vertice_data.clone());
         }
         if let Some(name) = &self.name {
             name.add_to_entity(entity, names, entities, children)?;
@@ -263,7 +269,7 @@ impl<'a> PrefabData<'a> for GltfPrefab {
         progress: &mut ProgressCounter,
         system_data: &mut Self::SystemData,
     ) -> Result<bool, Error> {
-        let (_, _, materials, animatables, _, _, _, meshes_storage, loader, mat_set) = system_data;
+        let (_, _, materials, animatables, _, _, _, _, meshes_storage, loader, mat_set) = system_data;
 
         let mut ret = false;
         if let Some(mut mats) = self.materials.take() {
