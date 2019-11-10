@@ -3,11 +3,11 @@ use amethyst_audio::{output::Output, Source, SourceHandle};
 use amethyst_core::{
     ecs::{
         prelude::{Component, DenseVecStorage},
-        Read, System, SystemData, World, Write,
+        Read, System, SystemData, Write,
     },
     shrev::{EventChannel, ReaderId},
-    SystemDesc,
 };
+use amethyst_derive::SystemDesc;
 
 use crate::{
     event::{UiEvent, UiEventType::*},
@@ -70,26 +70,12 @@ impl EventRetrigger for UiSoundRetrigger {
     }
 }
 
-/// Builds a `UiSoundSystem`.
-#[derive(Default, Debug)]
-pub struct UiSoundSystemDesc;
-
-impl<'a, 'b> SystemDesc<'a, 'b, UiSoundSystem> for UiSoundSystemDesc {
-    fn build(self, world: &mut World) -> UiSoundSystem {
-        <UiSoundSystem as System<'_>>::SystemData::setup(world);
-
-        let event_reader = world
-            .fetch_mut::<EventChannel<UiPlaySoundAction>>()
-            .register_reader();
-
-        UiSoundSystem::new(event_reader)
-    }
-}
-
 /// Handles any dispatches `UiPlaySoundAction`s and plays the received
 /// sounds through the set `Output`.
-#[derive(Debug)]
+#[derive(Debug, SystemDesc)]
+#[system_desc(name(UiSoundSystemDesc))]
 pub struct UiSoundSystem {
+    #[system_desc(event_channel_reader)]
     event_reader: ReaderId<UiPlaySoundAction>,
 }
 

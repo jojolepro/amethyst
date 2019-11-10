@@ -117,17 +117,17 @@ struct UiViewArgs {
 }
 
 lazy_static::lazy_static! {
-    static ref UI_VERTEX: SpirvShader = SpirvShader::new(
-        include_bytes!("../compiled/ui.vert.spv").to_vec(),
+    static ref UI_VERTEX: SpirvShader = SpirvShader::from_bytes(
+        include_bytes!("../compiled/ui.vert.spv"),
         ShaderStageFlags::VERTEX,
         "main",
-    );
+    ).unwrap();
 
-    static ref UI_FRAGMENT: SpirvShader = SpirvShader::new(
-        include_bytes!("../compiled/ui.frag.spv").to_vec(),
+    static ref UI_FRAGMENT: SpirvShader = SpirvShader::from_bytes(
+        include_bytes!("../compiled/ui.frag.spv"),
         ShaderStageFlags::FRAGMENT,
         "main",
-    );
+    ).unwrap();
 }
 
 /// A UI drawing pass that draws UI elements and text in screen-space
@@ -505,10 +505,10 @@ fn build_ui_pipeline<B: Backend>(
                 .with_layout(&pipeline_layout)
                 .with_subpass(subpass)
                 .with_framebuffer_size(framebuffer_width, framebuffer_height)
-                .with_blend_targets(vec![pso::ColorBlendDesc(
-                    pso::ColorMask::ALL,
-                    pso::BlendState::ALPHA,
-                )]),
+                .with_blend_targets(vec![pso::ColorBlendDesc {
+                    mask: pso::ColorMask::ALL,
+                    blend: Some(pso::BlendState::ALPHA),
+                }]),
         )
         .build(factory, None);
 
@@ -553,12 +553,24 @@ fn render_image<B: Backend>(
         UiImage::Sprite(sprite_renderer) => {
             let sprite_sheets = resources.fetch::<AssetStorage<SpriteSheet>>();
             if let Some(sprite_sheet) = sprite_sheets.get(&sprite_renderer.sprite_sheet) {
-                (&sprite_sheet.sprites[sprite_renderer.sprite_number].tex_coords).into()
+                let tex_coord = &sprite_sheet.sprites[sprite_renderer.sprite_number].tex_coords;
+                [
+                    tex_coord.left,
+                    tex_coord.top,
+                    tex_coord.right,
+                    tex_coord.bottom,
+                ]
             } else {
                 [0.0_f32, 0., 1., 1.]
             }
         }
-        UiImage::PartialTexture(_, tex_coord) => tex_coord.into(),
+        UiImage::PartialTexture {
+            left,
+            right,
+            bottom,
+            top,
+            ..
+        } => [*left, *top, *right, *bottom],
         _ => [0.0_f32, 0., 1., 1.],
     };
 
@@ -584,7 +596,7 @@ fn render_image<B: Backend>(
                 false
             }
         }
-        UiImage::PartialTexture(tex, _) => {
+        UiImage::PartialTexture { tex, .. } => {
             if let Some((tex_id, this_changed)) = textures.insert(
                 factory,
                 resources,

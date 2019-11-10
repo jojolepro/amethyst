@@ -1,10 +1,10 @@
 use amethyst::{
     assets::{AssetStorage, Handle, Loader},
-    core::{Named, Parent, SystemDesc, Transform, TransformBundle},
+    core::{Named, Parent, Transform, TransformBundle},
     derive::SystemDesc,
     ecs::{
-        Component, Entity, Join, NullStorage, Read, ReadStorage, System, SystemData, World,
-        WorldExt, WriteStorage,
+        Component, Entity, Join, NullStorage, Read, ReadStorage, System, SystemData, WorldExt,
+        WriteStorage,
     },
     input::{is_close_requested, is_key_down, InputBundle, InputHandler, StringBindings},
     prelude::*,
@@ -137,7 +137,6 @@ fn initialise_camera(world: &mut World, parent: Entity) -> Entity {
         let dim = world.read_resource::<ScreenDimensions>();
         (dim.width(), dim.height())
     };
-    //println!("Init camera with dimensions: {}x{}", width, height);
 
     let mut camera_transform = Transform::default();
     camera_transform.set_translation_z(5.0);
@@ -158,10 +157,13 @@ impl SimpleState for Example {
         let world = data.world;
         world.register::<Named>();
 
-        let circle_sprite_sheet_handle =
-            load_sprite_sheet(world, "Circle_Spritesheet.png", "Circle_Spritesheet.ron");
+        let circle_sprite_sheet_handle = load_sprite_sheet(
+            world,
+            "texture/Circle_Spritesheet.png",
+            "texture/Circle_Spritesheet.ron",
+        );
         let background_sprite_sheet_handle =
-            load_sprite_sheet(world, "Background.png", "Background.ron");
+            load_sprite_sheet(world, "texture/Background.png", "texture/Background.ron");
 
         let _background = init_background_sprite(world, &background_sprite_sheet_handle);
         let _reference = init_reference_sprite(world, &circle_sprite_sheet_handle);
@@ -203,7 +205,7 @@ fn main() -> amethyst::Result<()> {
         .start();
 
     let app_root = application_root_dir()?;
-    let assets_dir = app_root.join("examples/sprite_camera_follow/assets");
+    let assets_directory = app_root.join("examples/assets");
     let display_config_path = app_root.join("examples/sprite_camera_follow/config/display.ron");
 
     let game_data = GameDataBuilder::default()
@@ -217,13 +219,13 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(
             RenderingBundle::<DefaultBackend>::new()
                 .with_plugin(
-                    RenderToWindow::from_config_path(display_config_path)
+                    RenderToWindow::from_config_path(display_config_path)?
                         .with_clear([0.34, 0.36, 0.52, 1.0]),
                 )
                 .with_plugin(RenderFlat2D::default()),
         )?;
 
-    let mut game = Application::build(assets_dir, Example)?.build(game_data)?;
+    let mut game = Application::build(assets_directory, Example)?.build(game_data)?;
     game.run();
     Ok(())
 }

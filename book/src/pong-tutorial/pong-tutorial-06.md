@@ -4,7 +4,7 @@ Now that we have a functional pong game, let's spice things up by adding some au
 
 ## Adding the Sounds Resource
 
-Let's get started by creating an `audio` subdirectory under `assets`. Then download [the bounce sound][bounce] and [the score sound][score] and put them in `audio/assets`.
+Let's get started by creating an `audio` subdirectory under `assets`. Then download [the bounce sound][bounce] and [the score sound][score] and put them in `assets/audio`.
 
 Next, we'll create a Resource to store our sound effects in. In `main.rs`, add:
 
@@ -361,7 +361,7 @@ pub fn initialise_audio(world: &mut World) {
 Finally, let's add a DJ System to our game to play the music. In `main.rs`:
 
 ```rust,ignore
-use amethyst::audio::DjSystem;
+use amethyst::audio::DjSystemDesc;
 use crate::audio::Music;
 
 fn main() -> amethyst::Result<()> {
@@ -369,8 +369,8 @@ fn main() -> amethyst::Result<()> {
 
     let game_data = GameDataBuilder::default()
         // ... bundles
-        .with(
-            DjSystem::new(|music: &mut Music| music.music.next()),
+        .with_system_desc(
+            DjSystemDesc::new(|music: &mut Music| music.music.next()),
             "dj_system",
             &[],
         )

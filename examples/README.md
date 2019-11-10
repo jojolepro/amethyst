@@ -22,6 +22,7 @@ cargo run --example {{name}} --features "{{backend}}"
    3. [Sprites Ordered](#sprites-ordered)
    4. [Renderable](#renderable)
    5. [rendy](#rendy)
+   5. [Custom Render Pass](#custom-render-pass)
 3. Assets
    1. [Asset Custom](#asset-custom)
    2. [Asset Loading](#asset-loading)
@@ -36,6 +37,7 @@ cargo run --example {{name}} --features "{{backend}}"
 4. UI
    1. [UI](#ui)
    2. [Custom UI](#custom-ui)
+   3. [States Example](#states-example)
 5.  Debugging
     1.  [Debug Lines](#debug-lines)
     2.  [Debug Lines Ortho](#debug-lines-ortho)
@@ -48,6 +50,7 @@ cargo run --example {{name}} --features "{{backend}}"
    3. [Auto FOV](#auto-fov)
    4. [Sprite Camera Follow](#sprite-camera-follow)
    5. [Locale](#locale)
+   6. [Tiles](#tiles)
 8. Games
    1. [Pong](#pong)
 
@@ -144,6 +147,17 @@ Loads graphics objects from disk using the asset loader. Contains a custom syste
 Showcases the different capabilities of Amethyst's rendy renderer.
 
 ![rendy example screenshot](assets/img/rendy.png)
+
+---
+## Custom Render Pass
+
+Showcases the using a custom shader, pipeline, and renderer to display triangles.
+
+Input:
+
+* `Mouse Wheel' - Changes the scaling of the triangle.
+
+![rendy example screenshot](assets/img/custom_render_pass.png)
 
 ---
 
@@ -243,6 +257,15 @@ Renders a custom UI.
 
 ---
 
+## States Example
+
+Simple Example on how to use states and UI (e.g. switching between Screens).
+
+![pause menu example screenshot](assets/img/pause-menu.png)
+![main menu example screenshot](assets/img/main-menu.png)
+
+---
+
 # Debugging
 
 ## Debug Lines
@@ -319,6 +342,14 @@ See you later!
 Bonjour!
 Au revoir!
 ```
+
+---
+
+## Tiles
+
+Showcases the `amethyst_tiles` crate.
+
+![tiles example screenshot](assets/img/tiles.png)
 
 ---
 

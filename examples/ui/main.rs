@@ -3,8 +3,9 @@
 use amethyst::{
     assets::{PrefabLoader, PrefabLoaderSystemDesc, Processor, RonFormat},
     audio::{output::init_output, Source},
-    core::{frame_limiter::FrameRateLimitStrategy, transform::TransformBundle, SystemDesc, Time},
-    ecs::prelude::{Entity, System, SystemData, World, WorldExt, Write},
+    core::{frame_limiter::FrameRateLimitStrategy, transform::TransformBundle, Time},
+    derive::SystemDesc,
+    ecs::prelude::{Entity, System, SystemData, WorldExt, Write},
     input::{is_close_requested, is_key_down, InputBundle, StringBindings},
     prelude::*,
     renderer::{
@@ -138,7 +139,7 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(
             RenderingBundle::<DefaultBackend>::new()
                 .with_plugin(
-                    RenderToWindow::from_config_path(display_config_path)
+                    RenderToWindow::from_config_path(display_config_path)?
                         .with_clear([0.34, 0.36, 0.52, 1.0]),
                 )
                 .with_plugin(RenderUi::default()),
@@ -152,22 +153,11 @@ fn main() -> amethyst::Result<()> {
     Ok(())
 }
 
-/// Builds a `UiEventHandlerSystem`.
-#[derive(Default, Debug)]
-pub struct UiEventHandlerSystemDesc;
-
-impl<'a, 'b> SystemDesc<'a, 'b, UiEventHandlerSystem> for UiEventHandlerSystemDesc {
-    fn build(self, world: &mut World) -> UiEventHandlerSystem {
-        <UiEventHandlerSystem as System<'_>>::SystemData::setup(world);
-
-        let reader_id = Write::<'_, EventChannel<UiEvent>>::fetch(world).register_reader();
-
-        UiEventHandlerSystem::new(reader_id)
-    }
-}
-
 /// This shows how to handle UI events.
+#[derive(SystemDesc)]
+#[system_desc(name(UiEventHandlerSystemDesc))]
 pub struct UiEventHandlerSystem {
+    #[system_desc(event_channel_reader)]
     reader_id: ReaderId<UiEvent>,
 }
 
