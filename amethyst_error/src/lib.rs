@@ -18,7 +18,6 @@
 #![warn(clippy::all)]
 #![allow(clippy::new_without_default)]
 
-pub use backtrace::Backtrace;
 use std::{
     borrow::Cow,
     env, error, fmt, result,
@@ -31,7 +30,6 @@ const RUST_BACKTRACE: &str = "RUST_BACKTRACE";
 #[derive(Debug)]
 struct Inner<T: ?Sized> {
     source: Option<Box<Error>>,
-    backtrace: Option<Backtrace>,
     error: T,
 }
 
@@ -54,7 +52,6 @@ impl Error {
         Self {
             inner: Box::new(Inner {
                 source: None,
-                backtrace: new_backtrace(),
                 error: Box::new(error),
             }),
         }
@@ -89,15 +86,9 @@ impl Error {
         Self {
             inner: Box::new(Inner {
                 source: None,
-                backtrace: new_backtrace(),
                 error: Box::new(StringError(message.into())),
             }),
         }
-    }
-
-    /// Get backtrace.
-    pub fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace.as_ref()
     }
 
     /// Get the source of the error.
@@ -310,37 +301,11 @@ where
     }
 }
 
-/// Test if backtracing is enabled.
-fn is_backtrace_enabled() -> bool {
-    match env::var_os(RUST_BACKTRACE) {
-        Some(ref val) if val != "0" => true,
-        _ => false,
-    }
-}
 
 // 0: unchecked
 // 1: disabled
 // 2: enabled
 static BACKTRACE_STATUS: AtomicUsize = AtomicUsize::new(0);
-
-/// Constructs a new backtrace, if backtraces are enabled.
-fn new_backtrace() -> Option<Backtrace> {
-    match BACKTRACE_STATUS.load(atomic::Ordering::Relaxed) {
-        0 => {
-            let enabled = is_backtrace_enabled();
-
-            BACKTRACE_STATUS.store(enabled as usize + 1, atomic::Ordering::Relaxed);
-
-            if !enabled {
-                return None;
-            }
-        }
-        1 => return None,
-        _ => {}
-    }
-
-    Some(Backtrace::new())
-}
 
 #[cfg(test)]
 mod tests {
@@ -413,40 +378,5 @@ mod tests {
         let e = e.with_source(Error::from_string("bar"));
         assert_eq!(e.to_string(), "foo");
         assert_eq!(e.source().map(|e| e.to_string()), Some(String::from("bar")));
-    }
-
-    // Note: all backtrace tests have to be in the same test case since they
-    // depend on the state of the global `BACKTRACE_STATUS`.
-    #[test]
-    fn test_backtrace() {
-        use super::BACKTRACE_STATUS;
-        use std::sync::atomic;
-
-        BACKTRACE_STATUS.store(2, atomic::Ordering::Relaxed);
-
-        #[allow(warnings)]
-        #[inline(never)]
-        #[no_mangle]
-        fn a_really_unique_name_42() -> Error {
-            Error::from_string("an error")
-        }
-
-        let e = a_really_unique_name_42();
-        let bt = e.backtrace().expect("a backtrace");
-
-        let frame_names = bt
-            .frames()
-            .iter()
-            .flat_map(|f| f.symbols().iter().flat_map(|s| s.name()))
-            .map(|n| n.to_string())
-            .collect::<Vec<_>>();
-
-        assert!(frame_names
-            .iter()
-            .any(|n| n.ends_with("a_really_unique_name_42")));
-
-        // Test disabled.
-        BACKTRACE_STATUS.store(1, atomic::Ordering::Relaxed);
-        assert!(Error::from_string("an error").backtrace().is_none());
     }
 }
