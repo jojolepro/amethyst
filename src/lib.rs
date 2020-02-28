@@ -69,23 +69,29 @@ pub use amethyst_assets as assets;
 #[cfg(feature = "audio")]
 pub use amethyst_audio as audio;
 pub use amethyst_config as config;
+#[cfg(feature = "renderer")]
 pub use amethyst_controls as controls;
 pub use amethyst_core as core;
 pub use amethyst_derive as derive;
 pub use amethyst_error as error;
 #[cfg(feature = "gltf")]
 pub use amethyst_gltf as gltf;
+#[cfg(feature = "renderer")]
 pub use amethyst_input as input;
 #[cfg(feature = "locale")]
 pub use amethyst_locale as locale;
 #[cfg(feature = "network")]
 pub use amethyst_network as network;
+#[cfg(feature = "renderer")]
 pub use amethyst_rendy as renderer;
 #[cfg(feature = "tiles")]
 pub use amethyst_tiles as tiles;
+#[cfg(feature = "renderer")]
 pub use amethyst_ui as ui;
 pub use amethyst_utils as utils;
+#[cfg(feature = "renderer")]
 pub use amethyst_window as window;
+#[cfg(feature = "renderer")]
 pub use winit;
 
 pub use crate::core::{ecs, shred, shrev};

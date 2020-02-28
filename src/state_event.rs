@@ -1,4 +1,5 @@
 use derivative::Derivative;
+#[cfg(feature = "renderer")]
 use winit::Event;
 
 use crate::{
@@ -8,7 +9,9 @@ use crate::{
         EventReader,
     },
     derive::EventReader,
+    #[cfg(feature = "renderer")]
     input::{BindingTypes, InputEvent, StringBindings},
+    #[cfg(feature = "renderer")]
     ui::UiEvent,
 };
 
@@ -17,6 +20,7 @@ use crate::{
 #[derive(Debug, Derivative, EventReader)]
 #[derivative(Clone(bound = ""))]
 #[reader(StateEventReader)]
+#[cfg(feature = "renderer")]
 pub enum StateEvent<T = StringBindings>
 where
     T: BindingTypes,

@@ -27,6 +27,7 @@ use crate::{
     game_data::{DataDispose, DataInit},
     state::{State, StateData, StateMachine, TransEvent},
     state_event::{StateEvent, StateEventReader},
+    #[cfg(feature = "renderer")]
     ui::UiEvent,
 };
 
@@ -269,6 +270,7 @@ where
     }
 
     // React to window close events
+    #[cfg(feature = "renderer")]
     fn should_close(&mut self) -> bool {
         if self.ignore_window_close {
             false
@@ -308,6 +310,7 @@ where
         for<'b> R: EventReader<'b, Event = E>,
     {
         trace!("Advancing frame (`Application::advance_frame`)");
+        #[cfg(feature = "renderer")]
         if self.should_close() {
             let world = &mut self.world;
             let states = &mut self.states;
