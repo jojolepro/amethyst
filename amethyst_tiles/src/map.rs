@@ -50,6 +50,10 @@ pub trait Map {
     /// This performs an inverse matrix transformation of the world coordinate, scaling and translating using this
     /// maps `origin` and `tile_dimensions` respectively. If the tile map entity has a transform component, then
     /// it also translates the point using the it's transform.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `TileOutOfBoundsError` if the coordinate is not within the bounds of the tiles
     fn to_tile(
         &self,
         coord: &Vector3<f32>,
@@ -145,12 +149,11 @@ impl<T: Tile, E: CoordinateEncoder> TileMap<T, E> {
         let transform = create_transform(&dimensions, &tile_dimensions);
 
         // Round the dimensions to the nearest multiplier for morton rounding
-        let encoder_dimensions = E::allocation_size(dimensions);
-        let size = (encoder_dimensions.x * encoder_dimensions.y * encoder_dimensions.z) as usize;
+        let size = E::allocation_size(dimensions);
         let mut data = Vec::with_capacity(size);
         data.resize_with(size, T::default);
 
-        let encoder = E::from_dimensions(encoder_dimensions);
+        let encoder = E::from_dimensions(dimensions);
 
         Self {
             data,
@@ -327,11 +330,11 @@ fn to_tile(
     inverse.z = inverse.z.floor();
 
     if inverse.x < 0.0
-        || inverse.x as u32 > max_dimensions.x
+        || inverse.x as u32 >= max_dimensions.x
         || inverse.y < 0.0
-        || inverse.y as u32 > max_dimensions.y
+        || inverse.y as u32 >= max_dimensions.y
         || inverse.z < 0.0
-        || inverse.z as u32 > max_dimensions.z
+        || inverse.z as u32 >= max_dimensions.z
     {
         let point_dimensions = Point3::new(inverse.x as i32, inverse.y as i32, inverse.z as i32);
         Err(TileOutOfBoundsError {
@@ -399,8 +402,8 @@ mod tests {
         let mut inner = TileMap::<TestTile, E>::new(dimensions, Vector3::new(10, 10, 1), None);
         let map = UnsafeWrapper::new(&mut inner);
 
-        (0..dimensions.x).into_par_iter().for_each(|x| {
-            (0..dimensions.y).into_par_iter().for_each(|y| {
+        (0..dimensions.x).for_each(|x| {
+            (0..dimensions.y).for_each(|y| {
                 for z in 0..dimensions.z {
                     let point = Point3::new(x, y, z);
 
@@ -409,8 +412,8 @@ mod tests {
             });
         });
 
-        (0..dimensions.x).into_par_iter().for_each(|x| {
-            (0..dimensions.y).into_par_iter().for_each(|y| {
+        (0..dimensions.x).for_each(|x| {
+            (0..dimensions.y).for_each(|y| {
                 for z in 0..dimensions.z {
                     let point = Point3::new(x, y, z);
                     assert_eq!(map.get().get(&Point3::new(x, y, z)).unwrap().point, point);
@@ -434,7 +437,7 @@ mod tests {
             Vector3::new(1, 2, 5),
         ];
 
-        test_dimensions.par_iter().for_each(|dimensions| {
+        test_dimensions.into_par_iter().for_each(|dimensions| {
             test_single_map::<MortonEncoder>(*dimensions);
             test_single_map::<MortonEncoder2D>(*dimensions);
             test_single_map::<FlatEncoder>(*dimensions);

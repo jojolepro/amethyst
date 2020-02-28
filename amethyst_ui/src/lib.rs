@@ -18,7 +18,9 @@ pub use self::{
         UiButtonBuilderResources, UiButtonSystem, UiButtonSystemDesc,
     },
     drag::{DragWidgetSystemDesc, Draggable},
-    event::{targeted, targeted_below, Interactable, UiEvent, UiEventType, UiMouseSystem},
+    event::{
+        targeted, targeted_below, Interactable, TargetedEvent, UiEvent, UiEventType, UiMouseSystem,
+    },
     event_retrigger::{
         EventReceiver, EventRetrigger, EventRetriggerSystem, EventRetriggerSystemDesc,
     },
@@ -48,7 +50,7 @@ pub use self::{
     },
     text::{LineMode, TextEditing, TextEditingMouseSystem, TextEditingMouseSystemDesc, UiText},
     text_editing::{TextEditingInputSystem, TextEditingInputSystemDesc},
-    transform::{UiFinder, UiTransform},
+    transform::{get_parent_pixel_size, UiFinder, UiTransform},
     widgets::{Widget, WidgetId, Widgets},
 };
 

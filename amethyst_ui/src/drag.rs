@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::marker::PhantomData;
+use std::{
+    collections::{HashMap, HashSet},
+    marker::PhantomData,
+};
 
 use amethyst_core::{
     ecs::{
@@ -9,13 +11,16 @@ use amethyst_core::{
     },
     math::Vector2,
     shrev::EventChannel,
-    Hidden, HiddenPropagate,
+    Hidden, HiddenPropagate, ParentHierarchy,
 };
 use amethyst_derive::SystemDesc;
 use amethyst_input::{BindingTypes, InputHandler};
 use amethyst_window::ScreenDimensions;
 
-use crate::{targeted_below, Interactable, UiEvent, UiEventType, UiTransform};
+use crate::{
+    get_parent_pixel_size, targeted_below, Interactable, ScaleMode, UiEvent, UiEventType,
+    UiTransform,
+};
 
 /// Component that denotes whether a given ui widget is draggable.
 /// Requires UiTransform to work, and its expected way of usage is
@@ -64,6 +69,7 @@ where
         Entities<'s>,
         Read<'s, InputHandler<T>>,
         ReadExpect<'s, ScreenDimensions>,
+        ReadExpect<'s, ParentHierarchy>,
         ReadStorage<'s, Hidden>,
         ReadStorage<'s, HiddenPropagate>,
         ReadStorage<'s, Draggable>,
@@ -78,6 +84,7 @@ where
             entities,
             input_handler,
             screen_dimensions,
+            hierarchy,
             hiddens,
             hidden_props,
             draggables,
@@ -122,11 +129,19 @@ where
                 *entity,
             ));
 
-            let ui_transform = ui_transforms.get_mut(*entity).unwrap();
             let change = mouse_pos - *prev;
 
-            ui_transform.local_x += change[0];
-            ui_transform.local_y += change[1];
+            let (parent_width, parent_height) =
+                get_parent_pixel_size(*entity, &hierarchy, &ui_transforms, &screen_dimensions);
+
+            let ui_transform = ui_transforms.get_mut(*entity).unwrap();
+            let (scale_x, scale_y) = match ui_transform.scale_mode {
+                ScaleMode::Pixel => (1.0, 1.0),
+                ScaleMode::Percent => (parent_width, parent_height),
+            };
+
+            ui_transform.local_x += change[0] / scale_x;
+            ui_transform.local_y += change[1] / scale_y;
 
             *prev = mouse_pos;
         }
