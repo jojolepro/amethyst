@@ -27,7 +27,6 @@ use crate::{
     game_data::{DataDispose, DataInit},
     state::{State, StateData, StateMachine, TransEvent},
     state_event::{StateEvent, StateEventReader},
-    #[cfg(feature = "renderer")]
     ui::UiEvent,
 };
 
