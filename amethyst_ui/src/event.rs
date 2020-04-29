@@ -7,10 +7,10 @@ use amethyst_core::{
         storage::NullStorage,
     },
     math::Vector2,
-    shrev::EventChannel,
+    shrev::{EventChannel, ReaderId},
     Hidden, HiddenPropagate,
 };
-use amethyst_input::{BindingTypes, InputHandler};
+use amethyst_input::{BindingTypes, InputHandler, InputEvent, StringBindings};
 use amethyst_window::ScreenDimensions;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
@@ -21,6 +21,15 @@ use winit::MouseButton;
 pub trait TargetedEvent {
     /// The `Entity` targeted by the event.
     fn get_target(&self) -> Entity;
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum UiSignal {
+    CursorMoved {
+        x: f32,
+        y: f32,
+    },
+    Press,
 }
 
 /// The type of ui event.
@@ -94,6 +103,41 @@ impl Component for Interactable {
     type Storage = NullStorage<Interactable>;
 }
 
+pub struct UiMouseSystemRes {
+    pub event_reader: Option<ReaderId<UiSignal>>,
+}
+
+impl Default for UiMouseSystemRes {
+    fn default() -> Self {
+        Self {
+            event_reader: None,
+        }
+    }
+}
+
+pub struct UiDriverRes {
+    pub event_reader: Option<ReaderId<InputEvent<StringBindings>>>,
+}
+
+impl Default for UiDriverRes {
+    fn default() -> Self {
+        Self {
+            event_reader: None,
+        }
+    }
+}
+
+pub struct UiDriver;
+
+impl<'a> System<'a> for UiDriver {
+    type SystemData = (Write<'a, UiDriverRes>, Read<'a, EventChannel<InputEvent<StringBindings>>>, Write<'a, EventChannel<UiSignal>>);
+    fn run(&mut self, (mut res, inputs, mut signals): Self::SystemData) {
+        if inputs.read(&mut res.event_reader.as_mut().unwrap()).any(|s| *s == InputEvent::MouseButtonPressed(MouseButton::Left)) {
+            signals.single_write(UiSignal::Press);
+        }
+    }
+}
+
 /// The system that generates events for `Interactable` enabled entities.
 /// The generic types A and B represent the A and B generic parameter of the InputHandler<A,B>.
 #[derive(Default, Debug)]
@@ -126,13 +170,22 @@ impl<'a, T: BindingTypes> System<'a> for UiMouseSystem<T> {
         Read<'a, InputHandler<T>>,
         ReadExpect<'a, ScreenDimensions>,
         Write<'a, EventChannel<UiEvent>>,
+        Write<'a, UiMouseSystemRes>,
+        Read<'a, EventChannel<UiSignal>>,
     );
 
     fn run(
         &mut self,
-        (entities, hiddens, hidden_props, transform, react, input, screen_dimensions, mut events): Self::SystemData,
+        (entities, hiddens, hidden_props, transform, react, input, screen_dimensions, mut events, mut res, signals): Self::SystemData,
     ) {
-        let down = input.mouse_button_is_down(MouseButton::Left);
+        if res.event_reader.is_none() {
+            println!("failed to aquire event reader");
+            return;
+        }
+
+        let down = signals.read(&mut res.event_reader.as_mut().unwrap()).any(|s| *s == UiSignal::Press);
+
+        //let down = input.mouse_button_is_down(MouseButton::Left);
 
         // TODO: To replace on InputHandler generate OnMouseDown and OnMouseUp events
         let click_started = down && !self.was_down;

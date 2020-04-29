@@ -5,7 +5,7 @@ use crate::{
     ResizeSystemDesc, SelectionKeyboardSystemDesc, SelectionMouseSystemDesc,
     TextEditingInputSystemDesc, TextEditingMouseSystemDesc, ToNativeWidget,
     UiButtonActionRetriggerSystemDesc, UiButtonSystemDesc, UiLoaderSystemDesc, UiMouseSystem,
-    UiSoundRetriggerSystemDesc, UiSoundSystemDesc, UiTransformSystemDesc, WidgetId,
+    UiSoundRetriggerSystemDesc, UiSoundSystemDesc, UiTransformSystemDesc, WidgetId, UiDriver,
 };
 use amethyst_assets::Processor;
 use amethyst_core::{
@@ -53,9 +53,14 @@ where
             &["transform_system"],
         );
         builder.add(
+            UiDriver,
+            "ui_driver",
+            &["input_system"],
+        );
+        builder.add(
             UiMouseSystem::<T>::new(),
             "ui_mouse_system",
-            &["input_system", "ui_transform"],
+            &["input_system", "ui_transform", "ui_driver"],
         );
         builder.add(
             Processor::<FontAsset>::new(),

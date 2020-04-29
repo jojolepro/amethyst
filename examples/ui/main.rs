@@ -6,7 +6,7 @@ use amethyst::{
     core::{frame_limiter::FrameRateLimitStrategy, transform::TransformBundle, Time},
     derive::SystemDesc,
     ecs::prelude::{Entity, System, SystemData, WorldExt, Write},
-    input::{is_close_requested, is_key_down, InputBundle, StringBindings},
+    input::{is_close_requested, is_key_down, InputBundle, StringBindings, InputEvent},
     prelude::*,
     renderer::{
         plugins::RenderToWindow,
@@ -15,7 +15,7 @@ use amethyst::{
         RenderingBundle,
     },
     shrev::{EventChannel, ReaderId},
-    ui::{RenderUi, UiBundle, UiCreator, UiEvent, UiFinder, UiText},
+    ui::*,
     utils::{
         application_root_dir,
         fps_counter::{FpsCounter, FpsCounterBundle},
@@ -39,6 +39,14 @@ impl SimpleState for Example {
         // Initialise the scene with an object, a light and a camera.
         let handle = world.exec(|loader: PrefabLoader<'_, MyPrefabData>| {
             loader.load("prefab/sphere.ron", RonFormat, ())
+        });
+        world.exec(|(mut inputs, mut signals, mut res, mut res2): 
+                   (Write<'_, EventChannel<InputEvent<StringBindings>>>,
+                    Write<'_, EventChannel<UiSignal>>,
+                    Write<'_, UiDriverRes>,
+                    Write<'_, UiMouseSystemRes>)| {
+            res.event_reader = Some(inputs.register_reader());
+            res2.event_reader = Some(signals.register_reader());
         });
         world.create_entity().with(handle).build();
         init_output(&mut world);

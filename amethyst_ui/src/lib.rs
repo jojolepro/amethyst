@@ -19,7 +19,7 @@ pub use self::{
     },
     drag::{DragWidgetSystemDesc, Draggable},
     event::{
-        targeted, targeted_below, Interactable, TargetedEvent, UiEvent, UiEventType, UiMouseSystem,
+        targeted, targeted_below, Interactable, TargetedEvent, UiEvent, UiEventType, UiMouseSystem, UiDriver, UiDriverRes, UiMouseSystemRes, UiSignal,
     },
     event_retrigger::{
         EventReceiver, EventRetrigger, EventRetriggerSystem, EventRetriggerSystemDesc,
