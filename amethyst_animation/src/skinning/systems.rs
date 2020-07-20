@@ -3,7 +3,6 @@ use amethyst_core::{
     math::{convert, Matrix4},
     Transform,
 };
-use amethyst_derive::SystemDesc;
 use amethyst_rendy::skinning::JointTransforms;
 
 use log::error;

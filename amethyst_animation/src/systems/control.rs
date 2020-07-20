@@ -1,10 +1,9 @@
 use std::{
     hash::Hash,
-    marker::{self, PhantomData},
+    marker::self,
     time::Duration,
 };
 
-use derivative::Derivative;
 use fnv::FnvHashMap;
 use log::error;
 use minterpolate::InterpolationPrimitive;
@@ -17,7 +16,7 @@ use amethyst_core::{
 
 use crate::resources::{
     Animation, AnimationCommand, AnimationControl, AnimationControlSet, AnimationHierarchy,
-    AnimationSampling, AnimationSet, ControlState, DeferStartRelation, RestState,
+    AnimationSampling, ControlState, DeferStartRelation, RestState,
     Sampler, SamplerControl, SamplerControlSet, StepDirection, ApplyData,
 };
 

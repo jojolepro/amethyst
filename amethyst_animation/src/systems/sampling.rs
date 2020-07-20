@@ -1,4 +1,4 @@
-use std::{marker, time::Duration};
+use std::time::Duration;
 
 use itertools::Itertools;
 use minterpolate::InterpolationPrimitive;
