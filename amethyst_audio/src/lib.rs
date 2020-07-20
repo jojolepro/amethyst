@@ -22,6 +22,9 @@ use std::{
     fmt::{Display, Formatter, Result as FmtResult},
 };
 
+#[macro_use]
+extern crate derive_new;
+
 pub mod output;
 
 mod bundle;
