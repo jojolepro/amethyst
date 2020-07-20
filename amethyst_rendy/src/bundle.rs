@@ -32,19 +32,13 @@ use std::collections::HashMap;
 /// If you need much more control, or you need to deal directly with the render pipeline,
 /// it's possible to define a `RenderGraphCreator` as show by the
 /// `renderable_custom` example.
-#[derive(Debug)]
+#[derive(Debug, new)]
 pub struct RenderingBundle<B: Backend> {
+    #[new(default)]
     plugins: Vec<Box<dyn RenderPlugin<B>>>,
 }
 
 impl<B: Backend> RenderingBundle<B> {
-    /// Create empty `RenderingBundle`. You must register a plugin using
-    /// [`with_plugin`] in order to actually display anything.
-    pub fn new() -> Self {
-        Self {
-            plugins: Vec::new(),
-        }
-    }
 
     /// Register a [`RenderPlugin`].
     ///
@@ -153,19 +147,15 @@ pub trait RenderPlugin<B: Backend>: std::fmt::Debug {
 }
 
 /// Builder of a rendering plan for specified target.
-#[derive(Debug)]
+#[derive(Debug, new)]
 pub struct RenderPlan<B: Backend> {
+    #[new(default)]
     targets: HashMap<Target, TargetPlan<B>>,
+    #[new(default)]
     roots: Vec<Target>,
 }
 
 impl<B: Backend> RenderPlan<B> {
-    fn new() -> Self {
-        Self {
-            targets: Default::default(),
-            roots: vec![],
-        }
-    }
 
     /// Mark render target as root. Root render targets are always
     /// evaluated, even if nothing depends on them.

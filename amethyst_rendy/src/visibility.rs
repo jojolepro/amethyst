@@ -35,9 +35,11 @@ pub struct Visibility {
 ///
 /// Note that this should run after `Transform` has been updated for the current frame, and
 /// before rendering occurs.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, new)]
 pub struct VisibilitySortingSystem {
+    #[new(default)]
     centroids: Vec<Internals>,
+    #[new(default)]
     transparent: Vec<Internals>,
 }
 
@@ -84,13 +86,6 @@ struct Internals {
     transparent: bool,
     centroid: Point3<f32>,
     camera_distance: f32,
-}
-
-impl VisibilitySortingSystem {
-    /// Create new sorting system
-    pub fn new() -> Self {
-        Self::default()
-    }
 }
 
 impl<'a> System<'a> for VisibilitySortingSystem {

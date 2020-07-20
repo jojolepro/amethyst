@@ -9,20 +9,14 @@ use amethyst::{
     Error,
 };
 
+#[derive(new)]
 struct Example {
+    #[new(default)]
     progress_counter: Option<ProgressCounter>,
+    #[new(default)]
     handle_en: Option<Handle<Locale>>,
+    #[new(default)]
     handle_fr: Option<Handle<Locale>>,
-}
-
-impl Example {
-    pub fn new() -> Self {
-        Example {
-            progress_counter: None,
-            handle_en: None,
-            handle_fr: None,
-        }
-    }
 }
 
 impl SimpleState for Example {

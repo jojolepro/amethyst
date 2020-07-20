@@ -31,7 +31,7 @@ enum LocalBasePipeline<'a, P> {
 
 /// Builder abstraction for constructing a backend-agnostic rendy `GraphicsPipeline`
 
-#[derive(Derivative, Debug)]
+#[derive(Derivative, Debug, new)]
 #[derivative(Clone(bound = ""))]
 pub struct PipelineDescBuilder<'a, B: Backend> {
     shaders: Option<GraphicsShaderSet<'a, B>>,
@@ -50,10 +50,6 @@ pub struct PipelineDescBuilder<'a, B: Backend> {
 }
 
 impl<'a, B: Backend> PipelineDescBuilder<'a, B> {
-    /// Create a new builder instance.
-    pub fn new() -> Self {
-        Self::default()
-    }
 
     /// Build with the provided `GraphicsShadersSet`
     pub fn with_shaders(mut self, shaders: GraphicsShaderSet<'a, B>) -> Self {
@@ -299,18 +295,13 @@ impl<'a, B: Backend> Default for PipelineDescBuilder<'a, B> {
 }
 
 /// Pipeline builder set.
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, new)]
 pub struct PipelinesBuilder<'a, B: Backend> {
+    #[new(default)]
     builders: Vec<PipelineDescBuilder<'a, B>>,
 }
 
 impl<'a, B: Backend> PipelinesBuilder<'a, B> {
-    /// Create a new pipeline builder.
-    pub fn new() -> Self {
-        Self {
-            builders: Vec::new(),
-        }
-    }
 
     /// Build with an additional `PipelineDescBuilder` instance.
     pub fn with_pipeline(mut self, builder: PipelineDescBuilder<'a, B>) -> Self {

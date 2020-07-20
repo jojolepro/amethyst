@@ -19,23 +19,19 @@ use std::{collections::VecDeque, net::SocketAddr};
 
 /// Resource serving as the owner of the queue of messages to be sent. This resource also serves
 /// as the interface for other systems to send messages.
+#[derive(new)]
 pub struct TransportResource {
+    #[new(default)]
     messages: VecDeque<Message>,
+    #[new(default)]
     frame_budget_bytes: i32,
+    #[new(default)]
     latency_nanos: i64,
+    #[new(default)]
     packet_loss: f32,
 }
 
 impl TransportResource {
-    /// Creates a new `TransportResource`.
-    pub fn new() -> Self {
-        Self {
-            messages: VecDeque::new(),
-            frame_budget_bytes: 0,
-            latency_nanos: 0,
-            packet_loss: 0.0,
-        }
-    }
 
     /// Returns estimated number of bytes you can reliably send this frame.
     pub fn frame_budget_bytes(&self) -> i32 {

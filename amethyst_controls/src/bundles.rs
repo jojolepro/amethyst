@@ -116,22 +116,17 @@ impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for FlyControlBundle<T> {
 /// Adding this bundle will grab the mouse, hide it and keep it centered.
 ///
 /// See the `arc_ball_camera` example to see how to use the arc ball camera.
-#[derive(Debug)]
+#[derive(Debug, new)]
 pub struct ArcBallControlBundle<T: BindingTypes> {
+    #[new(value = "1.0")]
     sensitivity_x: f32,
+    #[new(value = "1.0")]
     sensitivity_y: f32,
+    #[new(default)]
     _marker: PhantomData<T>,
 }
 
 impl<T: BindingTypes> ArcBallControlBundle<T> {
-    /// Builds a new `ArcBallControlBundle` with a default sensitivity of 1.0
-    pub fn new() -> Self {
-        ArcBallControlBundle {
-            sensitivity_x: 1.0,
-            sensitivity_y: 1.0,
-            _marker: PhantomData,
-        }
-    }
 
     /// Builds a new `ArcBallControlBundle` with the provided mouse sensitivity values.
     pub fn with_sensitivity(mut self, x: f32, y: f32) -> Self {

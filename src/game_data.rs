@@ -68,8 +68,11 @@ impl DataDispose for GameData<'_, '_> {
 
 /// Builder for default game data
 #[allow(missing_debug_implementations)]
+#[derive(new)]
 pub struct GameDataBuilder<'a, 'b> {
+    #[new(default)]
     dispatcher_operations: Vec<Box<dyn DispatcherOperation<'a, 'b>>>,
+    #[new(value = "DispatcherBuilder::new()")]
     disp_builder: DispatcherBuilder<'a, 'b>,
 }
 
@@ -80,13 +83,6 @@ impl<'a, 'b> Default for GameDataBuilder<'a, 'b> {
 }
 
 impl<'a, 'b> GameDataBuilder<'a, 'b> {
-    /// Create new builder
-    pub fn new() -> Self {
-        GameDataBuilder {
-            dispatcher_operations: Vec::new(),
-            disp_builder: DispatcherBuilder::new(),
-        }
-    }
 
     /// Inserts a barrier which assures that all systems added before the
     /// barrier are executed before the ones after this barrier.

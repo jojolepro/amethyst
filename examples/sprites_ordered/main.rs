@@ -36,51 +36,44 @@ struct LoadedSpriteSheet {
     sprite_h: u32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, new)]
 struct Example {
     /// The camera entity
+    #[new(default)]
     camera: Option<Entity>,
     /// The bat entities.
+    #[new(default)]
     entities: Vec<Entity>,
     /// Whether or not to add the transparent component to the entities
+    #[new(value = "true")]
     transparent: bool,
     /// Whether or not to add the hidden component to the entities
+    #[new(default)]
     hidden: bool,
     /// Whether or not to reverse the Z coordinates of the entities
     ///
     /// Non-reversed means left most entity has Z: 0, and Z decreases by 1.0 for each entity to the
     /// right. Reversed means the right most entity has Z: 0, and Z decreases by 1.0 for each entity
     /// to the left.
+    #[new(default)]
     reverse: bool,
     /// Information about the loaded sprite sheet.
+    #[new(default)]
     loaded_sprite_sheet: Option<LoadedSpriteSheet>,
     /// Z-axis position of the camera.
     ///
     /// The Z axis increases "out of the screen" if the camera faces the XY plane (i.e. towards the
     /// origin from (0.0, 0.0, 1.0)). This is the default orientation, when no rotation is applied to the
     /// camera's transform.
+    #[new(default)]
     camera_z: f32,
     /// Depth (Z-axis distance) that the camera can see.
     ///
     /// The camera cannot see things on the limits of its view, i.e. entities with the same Z
     /// coordinate cannot be seen, and entities at `Z - camera_depth_vision` also cannot be seen.
     /// Entities with Z coordinates between these limits are visible.
+    #[new(default)]
     camera_depth_vision: f32,
-}
-
-impl Example {
-    fn new() -> Self {
-        Example {
-            camera: None,
-            entities: Vec::new(),
-            transparent: true,
-            hidden: false,
-            reverse: false,
-            loaded_sprite_sheet: None,
-            camera_z: 0.0,
-            camera_depth_vision: 0.0,
-        }
-    }
 }
 
 impl SimpleState for Example {

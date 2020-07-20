@@ -96,24 +96,16 @@ impl Component for Interactable {
 
 /// The system that generates events for `Interactable` enabled entities.
 /// The generic types A and B represent the A and B generic parameter of the InputHandler<A,B>.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, new)]
 pub struct UiMouseSystem<T: BindingTypes> {
+    #[new(default)]
     was_down: bool,
+    #[new(default)]
     click_started_on: HashSet<Entity>,
+    #[new(default)]
     last_targets: HashSet<Entity>,
+    #[new(default)]
     _marker: PhantomData<T>,
-}
-
-impl<T: BindingTypes> UiMouseSystem<T> {
-    /// Creates a new UiMouseSystem.
-    pub fn new() -> Self {
-        UiMouseSystem {
-            was_down: false,
-            click_started_on: HashSet::new(),
-            last_targets: HashSet::new(),
-            _marker: PhantomData,
-        }
-    }
 }
 
 impl<'a, T: BindingTypes> System<'a> for UiMouseSystem<T> {

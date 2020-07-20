@@ -42,9 +42,10 @@ impl Default for DebugLinesParams {
 
 /// Component that stores persistent debug lines to be rendered in DebugLinesPass draw pass.
 /// The vector can only be cleared manually.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, new)]
 pub struct DebugLinesComponent {
     /// Lines to be rendered
+    #[new(default)]
     lines: Vec<DebugLine>,
 }
 
@@ -53,10 +54,6 @@ impl Component for DebugLinesComponent {
 }
 
 impl DebugLinesComponent {
-    /// Creates a new debug lines component with an empty DebugLine vector.
-    pub fn new() -> DebugLinesComponent {
-        Self::default()
-    }
 
     /// Builder method to pre-allocate a number of lines.
     pub fn with_capacity(capacity: usize) -> Self {
@@ -378,19 +375,14 @@ impl DebugLinesComponent {
 
 /// Resource that stores non-persistent debug lines to be rendered in DebugLinesPass draw pass.
 /// The vector is automatically cleared after being rendered.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, new)]
 pub struct DebugLines {
     /// Lines to be rendered
+    #[new(default)]
     inner: DebugLinesComponent,
 }
 
 impl DebugLines {
-    /// Creates a new debug lines component with an empty DebugLine vector.
-    pub fn new() -> DebugLines {
-        Self {
-            inner: Default::default(),
-        }
-    }
 
     /// Submits a line to be rendered by giving a position and a direction.
     pub fn draw_direction(&mut self, position: Point3<f32>, direction: Vector3<f32>, color: Srgba) {

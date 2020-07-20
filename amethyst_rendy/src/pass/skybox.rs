@@ -59,15 +59,12 @@ impl SkyboxSettings {
 /// Describe drawing a skybox around the camera view
 #[derive(Clone, Debug, PartialEq, Derivative)]
 #[derivative(Default(bound = ""))]
+#[derive(new)]
 pub struct DrawSkyboxDesc {
     default_settings: SkyboxSettings,
 }
 
 impl DrawSkyboxDesc {
-    /// Create instance of [DrawSkybox] render group
-    pub fn new() -> Self {
-        Default::default()
-    }
 
     /// Defines the [SkyboxSettings] colors to initialize for this render group
     pub fn with_colors(nadir_color: Srgb, zenith_color: Srgb) -> Self {

@@ -20,14 +20,8 @@ use amethyst::{
     window::ScreenDimensions,
 };
 
-#[derive(SystemDesc)]
+#[derive(SystemDesc, new)]
 struct ExampleLinesSystem;
-
-impl ExampleLinesSystem {
-    pub fn new() -> Self {
-        Self
-    }
-}
 
 impl<'s> System<'s> for ExampleLinesSystem {
     type SystemData = (

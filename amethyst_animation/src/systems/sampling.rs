@@ -29,29 +29,19 @@ use thread_profiler::profile_scope;
 /// ### Type parameters:
 ///
 /// - `T`: the component type that the animation should be applied to
-#[derive(Default, Debug)]
+#[derive(Default, Debug, new)]
 pub struct SamplerInterpolationSystem<T>
 where
     T: AnimationSampling,
 {
+    #[new(default)]
     m: marker::PhantomData<T>,
+    #[new(default)]
     inner: Vec<(f32, T::Channel, T::Primitive)>,
+    #[new(default)]
     channels: Vec<T::Channel>,
 }
 
-impl<T> SamplerInterpolationSystem<T>
-where
-    T: AnimationSampling,
-{
-    /// Creates a new `SamplerInterpolationSystem`
-    pub fn new() -> Self {
-        Self {
-            m: marker::PhantomData,
-            inner: Vec::default(),
-            channels: Vec::default(),
-        }
-    }
-}
 
 impl<'a, T> System<'a> for SamplerInterpolationSystem<T>
 where
@@ -256,38 +246,4 @@ where
 fn next_duration(last_frame: Duration, duration: Duration) -> (Duration, u32) {
     let animation_duration = duration_to_nanos(last_frame);
     let current_duration = duration_to_nanos(duration);
-    let remain_duration = current_duration % animation_duration;
-    let loops = current_duration / animation_duration;
-    (nanos_to_duration(remain_duration), loops as u32)
-}
-
-fn linear_blend<T>(
-    channel: &T::Channel,
-    output: &[(f32, T::Channel, T::Primitive)],
-) -> Option<T::Primitive>
-where
-    T: AnimationSampling,
-{
-    let total_blend_weight = output.iter().filter(|o| o.1 == *channel).map(|o| o.0).sum();
-    if total_blend_weight == 0. {
-        None
-    } else {
-        Some(
-            output
-                .iter()
-                .filter(|o| o.1 == *channel)
-                .map(|o| single_blend::<T>(total_blend_weight, o))
-                .fold(T::default_primitive(channel), |acc, p| acc.add(&p)),
-        )
-    }
-}
-
-fn single_blend<T>(
-    total: f32,
-    &(ref weight, _, ref primitive): &(f32, T::Channel, T::Primitive),
-) -> T::Primitive
-where
-    T: AnimationSampling,
-{
-    primitive.mul(*weight / total)
-}
+    let remain_duration = current_duration 

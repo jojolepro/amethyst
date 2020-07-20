@@ -37,8 +37,11 @@ pub struct SpriteVisibility {
 /// before rendering occurs.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""), Debug(bound = ""))]
+#[derive(new)]
 pub struct SpriteVisibilitySortingSystem {
+    #[new(default)]
     centroids: Vec<Internals>,
+    #[new(default)]
     transparent: Vec<Internals>,
 }
 
@@ -49,13 +52,6 @@ struct Internals {
     centroid: Point3<f32>,
     camera_distance: f32,
     from_camera: Vector3<f32>,
-}
-
-impl SpriteVisibilitySortingSystem {
-    /// Returns a new sprite visibility sorting system
-    pub fn new() -> Self {
-        Default::default()
-    }
 }
 
 impl<'a> System<'a> for SpriteVisibilitySortingSystem {

@@ -42,8 +42,11 @@ impl DataDispose for CustomGameData<'_, '_> {
     }
 }
 
+#[derive(new)]
 pub struct CustomGameDataBuilder<'a, 'b> {
+    #[new(default)]
     base_dispatcher_operations: Vec<Box<dyn DispatcherOperation<'a, 'b>>>,
+    #[new(default)]
     running_dispatcher_operations: Vec<Box<dyn DispatcherOperation<'a, 'b>>>,
 }
 
@@ -54,12 +57,6 @@ impl<'a, 'b> Default for CustomGameDataBuilder<'a, 'b> {
 }
 
 impl<'a, 'b> CustomGameDataBuilder<'a, 'b> {
-    pub fn new() -> Self {
-        CustomGameDataBuilder {
-            base_dispatcher_operations: vec![],
-            running_dispatcher_operations: vec![],
-        }
-    }
 
     pub fn with_base<SD, S>(
         mut self,

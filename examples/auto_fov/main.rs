@@ -83,18 +83,12 @@ struct ScenePrefab {
 #[derive(Clone, Default)]
 struct ShowFov;
 
+#[derive(new)]
 struct Loading {
+    #[new(value = "ProgressCounter::new()")]
     progress: ProgressCounter,
+    #[new(default)]
     scene: Option<Handle<Prefab<ScenePrefab>>>,
-}
-
-impl Loading {
-    fn new() -> Self {
-        Loading {
-            progress: ProgressCounter::new(),
-            scene: None,
-        }
-    }
 }
 
 impl SimpleState for Loading {
@@ -163,14 +157,8 @@ impl SimpleState for Example {
     }
 }
 
-#[derive(SystemDesc)]
+#[derive(SystemDesc, new)]
 struct ShowFovSystem;
-
-impl ShowFovSystem {
-    pub fn new() -> Self {
-        Self
-    }
-}
 
 impl<'a> System<'a> for ShowFovSystem {
     type SystemData = (
