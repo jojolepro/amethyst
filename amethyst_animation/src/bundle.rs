@@ -1,14 +1,12 @@
 use crate::{
+    build_sampler_interpolation_system,
     resources::AnimationSampling,
     skinning::VertexSkinningSystemDesc,
-    systems::{
-        build_sampler_processor,
-        build_animation_processor
-    }, build_sampler_interpolation_system,
+    systems::{build_animation_processor, build_sampler_processor},
 };
 use amethyst_core::{
-    ecs::prelude::*,    
-    dispatcher::{DispatcherBuilder, Stage, SystemBundle}
+    dispatcher::{DispatcherBuilder, Stage, SystemBundle},
+    ecs::prelude::*,
 };
 use amethyst_error::Error;
 use std::{hash::Hash, marker};
@@ -36,11 +34,7 @@ impl<'a> VertexSkinningBundle<'a> {
 }
 
 impl<'a, 'c> SystemBundle for VertexSkinningBundle<'c> {
-    fn build(
-        self,
-        world: &mut World,
-        builder: &mut DispatcherBuilder<'a>,
-    ) -> Result<(), Error> {
+    fn build(self, world: &mut World, builder: &mut DispatcherBuilder<'a>) -> Result<(), Error> {
         todo!("Check this");
         builder.add(
             VertexSkinningSystemDesc::default().build(world),
@@ -97,10 +91,9 @@ where
         resources: &mut Resources,
         builder: &mut DispatcherBuilder<'a>,
     ) -> Result<(), Error> {
-
         builder.add_system(Stage::Begin, build_sampler_interpolation_system::<T>);
         builder.add_system(Stage::Begin, build_sampler_processor::<T::Primitive>());
-            
+
         Ok(())
     }
 }
@@ -159,8 +152,7 @@ where
         resources: &mut Resources,
         builder: &mut DispatcherBuilder<'a, 'b>,
     ) -> Result<(), Error> {
-
-        builder.add_system(Stage::Begin, build_animation_processor::<T>());        
+        builder.add_system(Stage::Begin, build_animation_processor::<T>());
 
         compile_error!("error what's this?");
         /*builder.add(

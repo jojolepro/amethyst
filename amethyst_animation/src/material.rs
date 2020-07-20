@@ -91,7 +91,6 @@ pub enum MaterialChannel {
     UvOffset,
 }
 
-
 fn offset(offset: &TextureOffset) -> MaterialPrimitive {
     MaterialPrimitive::Offset(offset.u, offset.v)
 }

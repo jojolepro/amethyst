@@ -35,7 +35,7 @@ where
         let set = AnimationControlSet::default();
         buffer.add_component(entity, set);
         Some(set)
-     }
+    }
     // controls
     //     .entry(entity)
     //     .ok()

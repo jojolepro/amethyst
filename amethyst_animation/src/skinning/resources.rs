@@ -1,9 +1,4 @@
-use amethyst_core::{
-    ecs::{
-        prelude::*,
-    },
-    math::Matrix4,
-};
+use amethyst_core::{ecs::prelude::*, math::Matrix4};
 //use amethyst_derive::PrefabData;
 //use amethyst_error::Error;
 //use amethyst_rendy::skinning::JointTransformsPrefab;
@@ -14,7 +9,6 @@ pub struct Joint {
     /// The skins attached to this joint.
     pub skins: Vec<Entity>,
 }
-
 
 /// Skin, attach to the root entity in the mesh hierarchy
 #[derive(Debug)]
@@ -55,11 +49,11 @@ impl Skin {
 //     /// Index of the `Prefab` `Entity` where the `Skin` is placed.
 //     pub skins: Vec<usize>,
 // }
-// 
+//
 // // impl<'a> PrefabData<'a> for JointPrefab {
 // //     type SystemData = WriteStorage<'a, Joint>;
 // //     type Result = ();
-// 
+//
 // //     fn add_to_entity(
 // //         &self,
 // //         entity: Entity,
@@ -75,11 +69,11 @@ impl Skin {
 // //                 },
 // //             )
 // //             .map(|_| ())?;
-// 
+//
 // //         Ok(())
 // //     }
 // // }
-// 
+//
 // /// `PrefabData` for loading `Skin`s
 // #[derive(Debug, Clone, Serialize, Deserialize)]
 // pub struct SkinPrefab {
@@ -92,11 +86,11 @@ impl Skin {
 //     /// Inverse bind matrices of the `Joint`s
 //     pub inverse_bind_matrices: Vec<Matrix4<f32>>,
 // }
-// 
+//
 // // impl<'a> PrefabData<'a> for SkinPrefab {
 // //     type SystemData = WriteStorage<'a, Skin>;
 // //     type Result = ();
-// 
+//
 // //     fn add_to_entity(
 // //         &self,
 // //         entity: Entity,
@@ -120,11 +114,11 @@ impl Skin {
 // //                 },
 // //             )
 // //             .map(|_| ())?;
-// 
+//
 // //         Ok(())
 // //     }
 // // }
-// 
+//
 // /// `PrefabData` for full skinning support
 // #[derive(Clone, Debug, Default, Derivative, Serialize, Deserialize/*, PrefabData*/)]
 // #[serde(default)]

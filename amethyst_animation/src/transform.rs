@@ -1,12 +1,9 @@
-use amethyst_core::{
-    math::{zero, Quaternion, Unit, Vector3, Vector4},
-    // Transform,
-};
+use amethyst_core::math::{zero, Quaternion, Unit, Vector3, Vector4};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    resources::{ApplyData, AnimationSampling, BlendMethod},
+    resources::{AnimationSampling, ApplyData, BlendMethod},
     util::SamplerPrimitive,
 };
 
@@ -21,8 +18,7 @@ pub enum TransformChannel {
     Scale,
 }
 
-impl ApplyData for Transform {
-}
+impl ApplyData for Transform {}
 
 impl AnimationSampling for Transform {
     type Primitive = SamplerPrimitive<f32>;

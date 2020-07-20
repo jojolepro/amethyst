@@ -5,10 +5,9 @@ use fnv::FnvHashMap;
 use minterpolate::{get_input_index, InterpolationFunction, InterpolationPrimitive};
 use serde::{Deserialize, Serialize};
 
-use amethyst_assets::{Asset, AssetStorage, Handle/*, PrefabData*/};
+use amethyst_assets::{Asset, AssetStorage, Handle};
 use amethyst_core::{
     ecs::prelude::*,
-    // shred::SystemData,
     timing::{duration_to_secs, secs_to_duration},
 };
 //use amethyst_derive::PrefabData;
@@ -24,9 +23,7 @@ pub enum BlendMethod {
 pub trait ApplyData {
     /// The actual data, must implement `SystemData`
     //type ApplyData;//: SystemData<'a>;
-    fn extra_data(mut builder: SystemBuilder) -> SystemBuilder {
-
-    }
+    fn extra_data(mut builder: SystemBuilder) -> SystemBuilder {}
 }
 
 /// Master trait used to define animation sampling on a component
@@ -107,7 +104,7 @@ where
 }
 
 /// Define the rest state for a component on an entity
-#[derive(Debug, Clone, Deserialize, Serialize/*, PrefabData*/)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 // #[prefab(Component)]
 pub struct RestState<T>
 where
@@ -130,7 +127,6 @@ where
         &self.state
     }
 }
-
 
 /// Defines the hierarchy of nodes that a single animation can control.
 /// Attached to the root entity that an animation can be defined for.
@@ -179,8 +175,12 @@ where
     /// Create rest state for the hierarchy. Will copy the values from the base components for each
     /// entity in the hierarchy.
     // pub fn rest_state<F>(&self, get_component: F, states: &mut WriteStorage<'_, RestState<T>>)
-    pub fn rest_state<F>(&self, get_component: F, world: &mut SubWorld<'_>, buffer: &mut CommandBuffer)
-    where
+    pub fn rest_state<F>(
+        &self,
+        get_component: F,
+        world: &mut SubWorld<'_>,
+        buffer: &mut CommandBuffer,
+    ) where
         T: AnimationSampling + Clone,
         F: Fn(Entity) -> Option<T>,
     {

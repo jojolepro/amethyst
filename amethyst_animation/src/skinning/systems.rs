@@ -19,7 +19,7 @@ use super::resources::*;
 #[system_desc(name(VertexSkinningSystemDesc))]
 pub struct VertexSkinningSystem {
     /// Also scratch space, used while determining which skins need to be updated.    
-    updated: BitSet,    
+    updated: BitSet,
     updated_skins: BitSet,
     /// Used for tracking modifications to global transforms
     updated_id: ReaderId<ComponentEvent>,

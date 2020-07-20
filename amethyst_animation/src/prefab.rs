@@ -4,17 +4,17 @@
 //     hash::Hash,
 //     marker::PhantomData,
 // };
-// 
+//
 // use derivative::Derivative;
 // use serde::{Deserialize, Serialize};
-// 
+//
 // use amethyst_assets::{AssetStorage, Handle, Loader, ProgressCounter};
 // use amethyst_core::ecs::prelude::*;
 // use amethyst_derive::PrefabData;
 // use amethyst_error::Error;
-// 
+//
 // use crate::{Animation, AnimationHierarchy, AnimationSampling, AnimationSet, RestState, Sampler};
-// 
+//
 // /// `PrefabData` for loading a single `Animation`
 // ///
 // /// This should be used primarily from inside other `PrefabData`, because this will not place
@@ -37,14 +37,14 @@
 //     #[serde(skip, default = "default_handle")]
 //     handle: Option<Handle<Animation<T>>>,
 // }
-// 
+//
 // fn default_handle<T>() -> Option<Handle<Animation<T>>>
 // where
 //     T: AnimationSampling,
 // {
 //     None
 // }
-// 
+//
 // impl<T> Default for AnimationPrefab<T>
 // where
 //     T: AnimationSampling,
@@ -56,10 +56,10 @@
 //         }
 //     }
 // }
-// 
+//
 // #[derive(Debug)]
 // pub struct MissingAssetHandle;
-// 
+//
 // impl Display for MissingAssetHandle {
 //     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
 //         write!(
@@ -68,9 +68,9 @@
 //         )
 //     }
 // }
-// 
+//
 // impl error::Error for MissingAssetHandle {}
-// 
+//
 // // impl<'a, T> PrefabData<'a> for AnimationPrefab<T>
 // // where
 // //     T: AnimationSampling,
@@ -81,7 +81,7 @@
 // //         Read<'a, AssetStorage<Animation<T>>>,
 // //     );
 // //     type Result = Handle<Animation<T>>;
-// 
+//
 // //     fn add_to_entity(
 // //         &self,
 // //         _: Entity,
@@ -95,7 +95,7 @@
 // //             .cloned()
 // //             .ok_or_else(|| MissingAssetHandle)?)
 // //     }
-// 
+//
 // //     fn load_sub_assets(
 // //         &mut self,
 // //         progress: &mut ProgressCounter,
@@ -118,7 +118,7 @@
 // //         Ok(true)
 // //     }
 // // }
-// 
+//
 // /// `PrefabData` for loading `Animation`s as part of an `AnimationSet`.
 // ///
 // /// ### Type parameters
@@ -138,7 +138,7 @@
 //     /// Pairs of `Id` and `Animation`
 //     pub animations: Vec<(I, AnimationPrefab<T>)>,
 // }
-// 
+//
 // // impl<'a, I, T> PrefabData<'a> for AnimationSetPrefab<I, T>
 // // where
 // //     T: AnimationSampling,
@@ -150,7 +150,7 @@
 // //         <AnimationPrefab<T> as PrefabData<'a>>::SystemData,
 // //     );
 // //     type Result = ();
-// 
+//
 // //     fn add_to_entity(
 // //         &self,
 // //         entity: Entity,
@@ -170,7 +170,7 @@
 // //         }
 // //         Ok(())
 // //     }
-// 
+//
 // //     fn load_sub_assets(
 // //         &mut self,
 // //         progress: &mut ProgressCounter,
@@ -185,7 +185,7 @@
 // //         Ok(ret)
 // //     }
 // // }
-// 
+//
 // /// `PrefabData` for loading `AnimationHierarchy`.
 // ///
 // /// ### Type parameters
@@ -198,14 +198,14 @@
 //     pub nodes: Vec<(usize, usize)>,
 //     _m: PhantomData<T>,
 // }
-// 
+//
 // // impl<'a, T> PrefabData<'a> for AnimationHierarchyPrefab<T>
 // // where
 // //     T: AnimationSampling,
 // // {
 // //     type SystemData = WriteStorage<'a, AnimationHierarchy<T>>;
 // //     type Result = ();
-// 
+//
 // //     fn add_to_entity(
 // //         &self,
 // //         entity: Entity,
@@ -224,11 +224,11 @@
 // //                 ),
 // //             )
 // //             .map(|_| ())?;
-// 
+//
 // //         Ok(())
 // //     }
 // // }
-// 
+//
 // /// `PrefabData` for full animation support
 // ///
 // /// ### Type parameters

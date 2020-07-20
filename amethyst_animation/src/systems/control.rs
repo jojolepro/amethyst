@@ -1,23 +1,16 @@
-use std::{
-    hash::Hash,
-    marker::self,
-    time::Duration,
-};
+use std::{hash::Hash, marker, time::Duration};
 
 use fnv::FnvHashMap;
 use log::error;
 use minterpolate::InterpolationPrimitive;
 
 use amethyst_assets::{AssetStorage, Handle};
-use amethyst_core::{
-    ecs::prelude::*,
-    timing::secs_to_duration,    
-};
+use amethyst_core::{ecs::prelude::*, timing::secs_to_duration};
 
 use crate::resources::{
     Animation, AnimationCommand, AnimationControl, AnimationControlSet, AnimationHierarchy,
-    AnimationSampling, ControlState, DeferStartRelation, RestState,
-    Sampler, SamplerControl, SamplerControlSet, StepDirection, ApplyData,
+    AnimationSampling, ApplyData, ControlState, DeferStartRelation, RestState, Sampler,
+    SamplerControl, SamplerControlSet, StepDirection,
 };
 
 #[cfg(feature = "profiler")]
@@ -46,15 +39,17 @@ where
     deferred_start: Vec<(I, f32)>,
 }
 
-pub fn build_animation_control_system<I: PartialEq + Eq + Hash + Copy + Send + Sync + 'static, T: AnimationSampling + Clone>(
+pub fn build_animation_control_system<
+    I: PartialEq + Eq + Hash + Copy + Send + Sync + 'static,
+    T: AnimationSampling + Clone,
+>(
     world: &mut World,
-    resources: &mut Resources
+    resources: &mut Resources,
 ) -> Box<dyn Schedulable> {
-
-    let mut next_id = 1;            
+    let mut next_id = 1;
     let mut remove_ids = Vec::default();
-    let mut state_set = FnvHashMap::default();            
-    let mut deferred_start =Vec::default();
+    let mut state_set = FnvHashMap::default();
+    let mut deferred_start = Vec::default();
 
     let builder = SystemBuilder::<()>::new("AnimationControlSystem");
     let builder = T::extra_data(builder);
@@ -503,7 +498,7 @@ where
                 control,
                 world,
                 buffer,
-                hierarchy,                
+                hierarchy,
                 // samplers,
                 // rest_states,
                 // targets,
@@ -548,7 +543,8 @@ where
             if check_termination(control.id, hierarchy, world) {
                 // Do termination
                 for node_entity in hierarchy.nodes.values() {
-                    let empty = world.get_component_mut::<SamplerControlSet<T>>(entity)                        
+                    let empty = world
+                        .get_component_mut::<SamplerControlSet<T>>(entity)
                         .map(|sampler| {
                             sampler.clear(control.id);
                             sampler.is_empty()
@@ -627,7 +623,8 @@ where
         let node_entity = hierarchy.nodes.get(node_index).expect(
             "Unreachable: Existence of all nodes are checked in validation of hierarchy above",
         );
-        if let Some(component) = world.get_component_storage::<RestState<T>>(*node_entity)            
+        if let Some(component) = world
+            .get_component_storage::<RestState<T>>(*node_entity)
             .map(RestState::state)
             .or_else(|| world.get_component::<T>(*node_entity))
         {
@@ -641,7 +638,8 @@ where
                 rate_multiplier: control.rate_multiplier,
                 blend_weight: 1.0,
             };
-            if let Some(ref mut set) = world.get_component_mut::<SamplerControlSet<T>>(*node_entity) {
+            if let Some(ref mut set) = world.get_component_mut::<SamplerControlSet<T>>(*node_entity)
+            {
                 set.add_control(sampler_control);
             } else {
                 let mut set = SamplerControlSet::default();
@@ -775,7 +773,8 @@ where
     if check_termination(control_id, hierarchy, world) {
         // Do termination
         for node_entity in hierarchy.nodes.values() {
-            let empty = world.get_component_mut::<SamplerControlSet<T>>(*node_entity)
+            let empty = world
+                .get_component_mut::<SamplerControlSet<T>>(*node_entity)
                 .map(|sampler| {
                     sampler.clear(control_id);
                     sampler.is_empty()
