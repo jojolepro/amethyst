@@ -2,7 +2,6 @@ use std::{cmp::Ordering, fmt::Debug, hash::Hash, marker, time::Duration};
 
 use derivative::Derivative;
 use fnv::FnvHashMap;
-use log::error;
 use minterpolate::{get_input_index, InterpolationFunction, InterpolationPrimitive};
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +12,6 @@ use amethyst_core::{
     timing::{duration_to_secs, secs_to_duration},
 };
 //use amethyst_derive::PrefabData;
-use amethyst_error::Error;
 
 /// Blend method for sampler blending
 #[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Eq, Hash)]
@@ -46,7 +44,7 @@ pub trait AnimationSampling: Send + Sync + 'static + ApplyData {
         &mut self,
         channel: &Self::Channel,
         data: &Self::Primitive,
-        world: &mut SubWorld,
+        world: &mut SubWorld<'_>,
         buffer: &mut CommandBuffer,
         // extra: &<Self as ApplyData<'a>>::ApplyData,
     );
@@ -55,7 +53,7 @@ pub trait AnimationSampling: Send + Sync + 'static + ApplyData {
     fn current_sample<'a>(
         &self,
         channel: &Self::Channel,
-        world: &mut SubWorld,
+        world: &mut SubWorld<'_>,
         buffer: &mut CommandBuffer,
         // extra: &<Self as ApplyData<'a>>::ApplyData,
     ) -> Self::Primitive;
@@ -181,7 +179,7 @@ where
     /// Create rest state for the hierarchy. Will copy the values from the base components for each
     /// entity in the hierarchy.
     // pub fn rest_state<F>(&self, get_component: F, states: &mut WriteStorage<'_, RestState<T>>)
-    pub fn rest_state<F>(&self, get_component: F, world: &mut SubWorld, buffer: &mut CommandBuffer)
+    pub fn rest_state<F>(&self, get_component: F, world: &mut SubWorld<'_>, buffer: &mut CommandBuffer)
     where
         T: AnimationSampling + Clone,
         F: Fn(Entity) -> Option<T>,

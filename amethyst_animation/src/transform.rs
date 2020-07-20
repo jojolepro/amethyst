@@ -6,7 +6,7 @@ use amethyst_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    resources::{AnimationSampling, BlendMethod},
+    resources::{ApplyData, AnimationSampling, BlendMethod},
     util::SamplerPrimitive,
 };
 

@@ -21,7 +21,7 @@ use self::SamplerPrimitive::*;
 /// - `T`: the component type that the animation applies to
 pub fn get_animation_set<'a, I, T>(
     // controls: &'a mut WriteStorage<'_, AnimationControlSet<I, T>>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     buffer: &mut CommandBuffer,
     entity: Entity,
 ) -> Option<&'a mut AnimationControlSet<I, T>>

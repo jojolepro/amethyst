@@ -362,7 +362,7 @@ fn get_running_duration<T>(
     entity: Entity,
     control: &AnimationControl<T>,
     hierarchy: Option<&AnimationHierarchy<T>>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     // samplers: &WriteStorage<'_, SamplerControlSet<T>>,
 ) -> f32
 where
@@ -431,7 +431,7 @@ fn process_animation_control<T>(
     control: &mut AnimationControl<T>,
     hierarchy: Option<&AnimationHierarchy<T>>,
     sampler_storage: &AssetStorage<Sampler<T::Primitive>>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     buffer: CommandBuffer,
     // samplers: &mut WriteStorage<'_, SamplerControlSet<T>>,
     // rest_states: &mut WriteStorage<'_, RestState<T>>,
@@ -590,7 +590,7 @@ fn start_animation<T>(
     animation: &Animation<T>,
     sampler_storage: &AssetStorage<Sampler<T::Primitive>>,
     control: &AnimationControl<T>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     buffer: &mut CommandBuffer,
     hierarchy: &AnimationHierarchy<T>,
     // samplers: &mut WriteStorage<'_, SamplerControlSet<T>>,
@@ -666,7 +666,7 @@ fn pause_animation<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
     //samplers: &mut WriteStorage<'_, SamplerControlSet<T>>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
 ) where
     T: AnimationSampling,
 {
@@ -681,7 +681,7 @@ fn unpause_animation<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
     // samplers: &mut WriteStorage<'_, SamplerControlSet<T>>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
 ) where
     T: AnimationSampling,
 {
@@ -695,7 +695,7 @@ fn unpause_animation<T>(
 fn step_animation<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     // controls: &mut WriteStorage<'_, SamplerControlSet<T>>,
     sampler_storage: &AssetStorage<Sampler<T::Primitive>>,
     direction: &StepDirection,
@@ -712,7 +712,7 @@ fn step_animation<T>(
 fn set_animation_input<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     // controls: &mut WriteStorage<'_, SamplerControlSet<T>>,
     input: f32,
 ) where
@@ -729,7 +729,7 @@ fn set_blend_weights<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
     // controls: &mut WriteStorage<'_, SamplerControlSet<T>>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     weights: &[(usize, T::Channel, f32)],
 ) where
     T: AnimationSampling,
@@ -746,7 +746,7 @@ fn set_blend_weights<T>(
 fn update_animation_rate<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     // samplers: &mut WriteStorage<'_, SamplerControlSet<T>>,
     rate_multiplier: f32,
 ) where
@@ -764,7 +764,7 @@ fn update_animation_rate<T>(
 fn check_and_terminate_animation<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     buffer: &mut CommandBuffer,
     // samplers: &mut WriteStorage<'_, SamplerControlSet<T>>,
 ) -> bool
@@ -802,7 +802,7 @@ where
 fn check_termination<T>(
     control_id: u64,
     hierarchy: &AnimationHierarchy<T>,
-    world: &mut SubWorld,
+    world: &mut SubWorld<'_>,
     // samplers: &WriteStorage<'_, SamplerControlSet<T>>,
 ) -> bool
 where
