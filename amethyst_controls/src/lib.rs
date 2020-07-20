@@ -9,6 +9,9 @@
 #![warn(clippy::all)]
 #![allow(clippy::new_without_default)]
 
+#[macro_use]
+extern crate derive_new;
+
 pub use self::{
     bundles::{ArcBallControlBundle, FlyControlBundle},
     components::{ArcBallControl, FlyControl},

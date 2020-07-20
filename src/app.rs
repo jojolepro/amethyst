@@ -27,6 +27,10 @@ use crate::{
     state_event::{StateEvent, StateEventChannel},
 };
 
+#[cfg(feature = "renderer")]
+use crate::ui::UiEvent;
+
+
 /// `CoreApplication` is the application implementation for the game engine. This is fully generic
 /// over the state type and event type.
 ///
@@ -555,7 +559,8 @@ where
         resources.insert(Loader::new(path.as_ref().to_owned(), pool.clone()));
         resources.insert(pool);
         resources.insert(EventChannel::<Event>::with_capacity(2000));
-        //resources.insert(EventChannel::<UiEvent>::with_capacity(40));
+        #[cfg(feature = "renderer")]
+        resources.insert(EventChannel::<UiEvent>::with_capacity(40));
         resources.insert(EventChannel::<TransEvent<T, StateEvent>>::with_capacity(2));
         resources.insert(FrameLimiter::default());
         resources.insert(Stopwatch::default());
