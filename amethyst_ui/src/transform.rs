@@ -1,13 +1,7 @@
 use std::marker::PhantomData;
 
 use amethyst_core::{
-    ecs::{
-        prelude::{
-            Component, DenseVecStorage, Entities, Entity, FlaggedStorage, Join, ReadStorage, World,
-        },
-        shred::{ResourceId, SystemData},
-        storage::GenericReadStorage,
-    },
+    ecs::*,
     ParentHierarchy,
 };
 use amethyst_window::ScreenDimensions;
@@ -15,24 +9,6 @@ use amethyst_window::ScreenDimensions;
 use serde::{Deserialize, Serialize};
 
 use super::{Anchor, ScaleMode, Stretch};
-
-/// Utility `SystemData` for finding UI entities based on `UiTransform` id
-#[derive(SystemData)]
-#[allow(missing_debug_implementations)]
-pub struct UiFinder<'a> {
-    entities: Entities<'a>,
-    storage: ReadStorage<'a, UiTransform>,
-}
-
-impl<'a> UiFinder<'a> {
-    /// Find the `UiTransform` entity with the given id
-    pub fn find(&self, id: &str) -> Option<Entity> {
-        (&*self.entities, &self.storage)
-            .join()
-            .find(|(_, transform)| transform.id == id)
-            .map(|(entity, _)| entity)
-    }
-}
 
 /// The UiTransform represents the transformation of a ui element.
 /// Values are in pixel and the position is calculated from the bottom left of the screen
