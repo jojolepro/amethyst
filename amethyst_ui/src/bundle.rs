@@ -30,7 +30,7 @@ pub struct UiBundle<T: BindingTypes, C = NoCustomUi, W = u32, G = ()> {
     _marker: PhantomData<(T, C, W, G)>,
 }
 
-impl<'a, 'b, T, C, W, G> SystemBundle<'a, 'b> for UiBundle<T, C, W, G>
+impl<T, C, W, G> SystemBundle for UiBundle<T, C, W, G>
 where
     T: BindingTypes,
     C: ToNativeWidget,
@@ -40,7 +40,7 @@ where
     fn build(
         self,
         world: &mut World,
-        builder: &mut DispatcherBuilder<'a, 'b>,
+        builder: &mut DispatcherBuilder<'_, '_>,
     ) -> Result<(), Error> {
         builder.add(
             UiLoaderSystemDesc::<<C as ToNativeWidget>::PrefabData, W>::default().build(world),

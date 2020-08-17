@@ -1,6 +1,5 @@
 use amethyst_core::ecs::prelude::*;
-use derive_new::new;
-use std::{cmp::Ordering, marker::PhantomData};
+use std::cmp::Ordering;
 
 use crate::{Selectable, Selected};
 

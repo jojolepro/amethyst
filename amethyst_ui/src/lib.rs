@@ -55,8 +55,6 @@ pub use self::{
     widgets::{Widget, WidgetId, Widgets},
 };
 
-pub(crate) use amethyst_core::ecs::Entity;
-
 mod blink;
 mod bundle;
 mod button;
