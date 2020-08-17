@@ -1,6 +1,6 @@
 //! Module for the Blink component and BlinkSystem.
 
-use amethyst_core::{ecs::prelude::*, Hidden, Time};
+use amethyst_core::{ecs::*, Hidden, Time};
 
 #[cfg(feature = "profiler")]
 use thread_profiler::profile_scope;

@@ -4,10 +4,7 @@ use crate::{
 };
 use amethyst_assets::{AssetStorage, Handle, Loader};
 use amethyst_core::{
-    ecs::{
-        hibitset::BitSet, DispatcherBuilder, Entities, Entity, Join, Read, ReadExpect, ReadStorage,
-        SystemData, World,
-    },
+    ecs::*,
     Hidden, HiddenPropagate, SystemDesc,
 };
 use amethyst_error::Error;

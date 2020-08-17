@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use derivative::Derivative;
 
 use amethyst_core::{
-    ecs::prelude::{Component, Read, ReadStorage, System, SystemData, World, Write},
+    ecs::*,
     shrev::{Event, EventChannel, ReaderId},
     SystemDesc,
 };

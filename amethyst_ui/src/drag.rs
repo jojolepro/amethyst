@@ -5,10 +5,7 @@ use std::{
 };
 
 use amethyst_core::{
-    ecs::{
-        Component, DenseVecStorage, Entities, Entity, Join, Read, ReadExpect, ReadStorage,
-        ReaderId, System, SystemData, Write, WriteStorage,
-    },
+    ecs::*,
     math::Vector2,
     shrev::EventChannel,
     Hidden, HiddenPropagate, ParentHierarchy,

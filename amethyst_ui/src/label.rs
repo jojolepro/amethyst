@@ -1,26 +1,23 @@
 use crate::{
-    define_widget, font::default::get_default_font, Anchor, FontAsset, FontHandle, LineMode,
+    font::default::get_default_font, Anchor, FontAsset, FontHandle, LineMode,
     Stretch, UiText, UiTransform, WidgetId, Widgets,
 };
 
 use amethyst_assets::{AssetStorage, Loader};
-use amethyst_core::ecs::{
-    prelude::{Entities, Entity, Read, ReadExpect, World, WriteExpect, WriteStorage},
-    shred::{ResourceId, SystemData},
-};
+use amethyst_core::ecs::*;
 
 const DEFAULT_Z: f32 = 1.0;
 const DEFAULT_WIDTH: f32 = 128.0;
 const DEFAULT_HEIGHT: f32 = 64.0;
 const DEFAULT_TXT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
-define_widget!(UiLabel =>
-    entities: [text_entity]
-    components: [
-        (has UiTransform as position on text_entity),
-        (has UiText as text on text_entity)
-    ]
-);
+//define_widget!(UiLabel =>
+//    entities: [text_entity]
+//    components: [
+//        (has UiTransform as position on text_entity),
+//        (has UiText as text on text_entity)
+//    ]
+//);
 
 /// Container for all the resources the builder needs to make a new UiLabel.
 #[allow(missing_debug_implementations)]

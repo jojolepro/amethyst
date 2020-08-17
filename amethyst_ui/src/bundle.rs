@@ -10,7 +10,7 @@ use crate::{
 use amethyst_assets::Processor;
 use amethyst_core::{
     bundle::SystemBundle,
-    ecs::prelude::{DispatcherBuilder, World},
+    ecs::*,
     SystemDesc,
 };
 use amethyst_error::Error;

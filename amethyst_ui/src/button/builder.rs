@@ -3,10 +3,7 @@ use smallvec::{smallvec, SmallVec};
 use amethyst_assets::{AssetStorage, Loader};
 use amethyst_audio::SourceHandle;
 use amethyst_core::{
-    ecs::{
-        prelude::{Entities, Entity, Read, ReadExpect, World, WriteExpect, WriteStorage},
-        shred::{ResourceId, SystemData},
-    },
+    ecs::*,
     Parent,
 };
 use amethyst_rendy::{palette::Srgba, rendy::texture::palette::load_from_srgba, Texture};

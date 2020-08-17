@@ -1,8 +1,5 @@
 use amethyst_core::{
-    ecs::prelude::{
-        BitSet, Component, ComponentEvent, FlaggedStorage, Join, ReadExpect, System, SystemData,
-        WriteStorage,
-    },
+    ecs::prelude::*,
     shrev::ReaderId,
 };
 use amethyst_derive::SystemDesc;

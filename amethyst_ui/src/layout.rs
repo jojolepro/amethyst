@@ -5,10 +5,7 @@ use serde::{Deserialize, Serialize};
 use thread_profiler::profile_scope;
 
 use amethyst_core::{
-    ecs::prelude::{
-        BitSet, ComponentEvent, Join, ReadExpect, ReadStorage, ReaderId, System, SystemData, World,
-        WriteStorage,
-    },
+    ecs::*,
     HierarchyEvent, Parent, ParentHierarchy, SystemDesc,
 };
 use amethyst_window::ScreenDimensions;

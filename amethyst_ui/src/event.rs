@@ -1,11 +1,6 @@
 use crate::transform::UiTransform;
 use amethyst_core::{
-    ecs::{
-        prelude::{
-            Component, Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write,
-        },
-        storage::NullStorage,
-    },
+    ecs::*,
     math::Vector2,
     shrev::EventChannel,
     Hidden, HiddenPropagate,

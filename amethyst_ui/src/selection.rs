@@ -6,10 +6,7 @@ use serde::{Deserialize, Serialize};
 use winit::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 use amethyst_core::{
-    ecs::{
-        Component, DenseVecStorage, Entities, FlaggedStorage, Join, Read, ReadStorage, ReaderId,
-        System, SystemData, World, Write, WriteStorage,
-    },
+    ecs::*,
     shrev::EventChannel,
     SystemDesc,
 };

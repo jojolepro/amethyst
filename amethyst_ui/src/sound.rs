@@ -1,10 +1,7 @@
 use amethyst_assets::AssetStorage;
 use amethyst_audio::{output::Output, Source, SourceHandle};
 use amethyst_core::{
-    ecs::{
-        prelude::{Component, DenseVecStorage},
-        Read, System, SystemData, Write,
-    },
+    ecs::*,
     shrev::{EventChannel, ReaderId},
 };
 use amethyst_derive::SystemDesc;

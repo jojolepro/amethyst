@@ -11,10 +11,7 @@ use amethyst_assets::{
 };
 use amethyst_audio::Source as Audio;
 use amethyst_core::{
-    ecs::{
-        prelude::{Entities, Entity, Read, ReadExpect, World, Write, WriteStorage},
-        shred::{ResourceId, SystemData},
-    },
+    ecs::*,
     HiddenPropagate,
 };
 use amethyst_error::{format_err, Error, ResultExt};

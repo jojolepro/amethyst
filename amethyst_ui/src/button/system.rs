@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Debug};
 
 use amethyst_core::{
-    ecs::{Entity, ReadExpect, System, SystemData, Write, WriteStorage},
+    ecs::*,
     shrev::{EventChannel, ReaderId},
     ParentHierarchy,
 };

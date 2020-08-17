@@ -121,92 +121,92 @@ where
     }
 }
 
-/// Helper macro used inside `widget_components`
-#[macro_export]
-macro_rules! define_widget_component_fn_impl {
-    ( (has $t:ty as $name:ident on $entity:ident) ) => {
-        paste::item! {
-            /// Get a reference to the $t component for this widget.
-            pub fn [<get_ $name>]<'a>(
-                &self,
-                storage: &'a amethyst_core::ecs::prelude::ReadStorage<'a, $t>
-            ) -> &'a $t {
-                // TODO: Better error message
-                storage.get(self.$entity)
-                    .expect("Component should exist on entity")
-            }
-        }
+///// Helper macro used inside `widget_components`
+//#[macro_export]
+//macro_rules! define_widget_component_fn_impl {
+//    ( (has $t:ty as $name:ident on $entity:ident) ) => {
+//        paste::item! {
+//            /// Get a reference to the $t component for this widget.
+//            pub fn [<get_ $name>]<'a>(
+//                &self,
+//                storage: &'a amethyst_core::ecs::prelude::ReadStorage<'a, $t>
+//            ) -> &'a $t {
+//                // TODO: Better error message
+//                storage.get(self.$entity)
+//                    .expect("Component should exist on entity")
+//            }
+//        }
+//
+//        paste::item! {
+//            /// Get a mutable reference to the $t component for this widget.
+//            pub fn [<get_ $name _mut>]<'a>(
+//                &self,
+//                storage: &'a mut amethyst_core::ecs::prelude::WriteStorage<'a, $t>
+//            ) -> &'a mut $t {
+//                // TODO: Better error message
+//                storage.get_mut(self.$entity)
+//                    .expect("Component should exist on entity")
+//            }
+//        }
+//    };
+//
+//    ( (maybe_has $t:ty as $name:ident on $entity:ident) ) => {
+//        paste::item! {
+//            /// Get a reference to the $t component for this widget if it exists,
+//            /// `None` otherwise.
+//            pub fn [<get_ $name _maybe>]<'a>(
+//                &self,
+//                storage: &'a amethyst_core::ecs::prelude::ReadStorage<'a, $t>
+//            ) -> Option<&'a $t> {
+//                storage.get(self.$entity)
+//            }
+//        }
+//
+//        paste::item! {
+//            /// Get a mutable reference to the $t component for this widget
+//            /// if it exists, `None` otherwise.
+//            pub fn [<get_ $name _mut_maybe>]<'a>(
+//                &self,
+//                storage: &'a mut amethyst_core::ecs::prelude::WriteStorage<'a, $t>
+//            ) -> Option<&'a mut $t> {
+//                storage.get_mut(self.$entity)
+//            }
+//        }
+//    };
+//}
 
-        paste::item! {
-            /// Get a mutable reference to the $t component for this widget.
-            pub fn [<get_ $name _mut>]<'a>(
-                &self,
-                storage: &'a mut amethyst_core::ecs::prelude::WriteStorage<'a, $t>
-            ) -> &'a mut $t {
-                // TODO: Better error message
-                storage.get_mut(self.$entity)
-                    .expect("Component should exist on entity")
-            }
-        }
-    };
-
-    ( (maybe_has $t:ty as $name:ident on $entity:ident) ) => {
-        paste::item! {
-            /// Get a reference to the $t component for this widget if it exists,
-            /// `None` otherwise.
-            pub fn [<get_ $name _maybe>]<'a>(
-                &self,
-                storage: &'a amethyst_core::ecs::prelude::ReadStorage<'a, $t>
-            ) -> Option<&'a $t> {
-                storage.get(self.$entity)
-            }
-        }
-
-        paste::item! {
-            /// Get a mutable reference to the $t component for this widget
-            /// if it exists, `None` otherwise.
-            pub fn [<get_ $name _mut_maybe>]<'a>(
-                &self,
-                storage: &'a mut amethyst_core::ecs::prelude::WriteStorage<'a, $t>
-            ) -> Option<&'a mut $t> {
-                storage.get_mut(self.$entity)
-            }
-        }
-    };
-}
-
-/// This macro allows you to define what components can be attached to a widget,
-/// and will automatically generate getters for all components you specify.
-/// For each component, you are required to specify which entity handle the
-/// component will be attached to.
-#[macro_export]
-macro_rules! define_widget {
-    ($t:ident =>
-        entities: [$($field:tt),*]
-        components: [$($component:tt),*]
-    ) => {
-        /// A $t widget, containing references to its associated entities.
-        #[derive(Debug, Clone)]
-        pub struct $t {
-            $(
-                /// `$field` Entity
-                pub $field: $crate::Entity
-            ),*
-        }
-
-        impl $crate::Widget for $t {}
-
-        impl $t {
-            /// Create a new $t widget from its associated entities.
-            pub fn new(
-                $($field: $crate::Entity),*
-            ) -> Self {
-                Self {
-                    $($field),*
-                }
-            }
-
-            $($crate::define_widget_component_fn_impl!{ $component })*
-        }
-    };
-}
+///// This macro allows you to define what components can be attached to a widget,
+///// and will automatically generate getters for all components you specify.
+///// For each component, you are required to specify which entity handle the
+///// component will be attached to.
+//#[macro_export]
+//macro_rules! define_widget {
+//    ($t:ident =>
+//        entities: [$($field:tt),*]
+//        components: [$($component:tt),*]
+//    ) => {
+//        /// A $t widget, containing references to its associated entities.
+//        #[derive(Debug, Clone)]
+//        pub struct $t {
+//            $(
+//                /// `$field` Entity
+//                pub $field: $crate::Entity
+//            ),*
+//        }
+//
+//        impl $crate::Widget for $t {}
+//
+//        impl $t {
+//            /// Create a new $t widget from its associated entities.
+//            pub fn new(
+//                $($field: $crate::Entity),*
+//            ) -> Self {
+//                Self {
+//                    $($field),*
+//                }
+//            }
+//
+//            $($crate::define_widget_component_fn_impl!{ $component })*
+//        }
+//    };
+//}

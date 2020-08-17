@@ -1,5 +1,7 @@
 //! Module containing the system managing the text editing cursor create, deletion and position.
 
+use amethyst_core::ecs::*;
+
 // TODO: Complete this and remove the logic from the UI Pass. Scheduled for completion after Transform2D.
 // File currently ignored because it is not added to lib.rs
 
