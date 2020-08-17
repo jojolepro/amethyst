@@ -2,30 +2,30 @@
 
 use amethyst::{
     assets::{AssetStorage, Loader},
-    controls::{FlyControlBundle, HideCursor, FlyControl},
+    controls::{FlyControl, FlyControlBundle, HideCursor},
     core::{
         frame_limiter::FrameRateLimitStrategy,
-        transform::{LocalToWorld, Rotation, Translation, TransformBundle},
+        transform::{Transform, TransformBundle},
     },
     input::{is_key_down, is_mouse_button_down, InputBundle, StringBindings},
     prelude::*,
     renderer::{
         camera::Camera,
-        plugins::{RenderShaded3D, RenderToWindow, RenderDebugLines},
+        light::{Light, PointLight},
         mtl::{Material, MaterialDefaults},
         palette::{LinSrgba, Srgb},
-        light::{Light, PointLight},
+        plugins::{RenderShaded3D, RenderToWindow},
         rendy::{
             mesh::{Normal, Position, Tangent, TexCoord},
             texture::palette::load_from_linear_rgba,
         },
         shape::Shape,
         types::DefaultBackend,
-        RenderingBundle, Mesh, Texture,
+        Mesh, RenderingBundle, Texture,
     },
     utils::application_root_dir,
-    winit::{MouseButton, VirtualKeyCode},
     window::ScreenDimensions,
+    winit::{MouseButton, VirtualKeyCode},
     Error,
 };
 
@@ -72,7 +72,8 @@ impl SimpleState for ExampleState {
             let roughness = 1.0f32 * (i as f32 / 4.0f32);
             let metallic = 1.0f32 * (j as f32 / 4.0f32);
 
-            let pos = Translation::new(2.0f32 * (i - 2) as f32, 2.0f32 * (j - 2) as f32, 0.0);
+            let mut pos = Transform::default();
+            pos.set_translation_xyz(2.0f32 * (i - 2) as f32, 2.0f32 * (j - 2) as f32, 0.0);
 
             let mtl = {
                 let metallic_roughness = loader.load_from_data(
@@ -92,10 +93,10 @@ impl SimpleState for ExampleState {
                 )
             };
 
-            (LocalToWorld::identity(), pos, mesh.clone(), mtl)
+            (pos, mesh.clone(), mtl)
         });
 
-        world.insert((), spheres);
+        world.extend(spheres);
 
         println!("Create lights");
         let light1: Light = PointLight {
@@ -105,7 +106,8 @@ impl SimpleState for ExampleState {
         }
         .into();
 
-        let light1_translation = Translation::new(6.0, 6.0, -6.0);
+        let mut light1_transform = Transform::default();
+        light1_transform.set_translation_xyz(6.0, 6.0, -6.0);
 
         let light2: Light = PointLight {
             intensity: 5.0,
@@ -114,44 +116,30 @@ impl SimpleState for ExampleState {
         }
         .into();
 
-        let light2_translation = Translation::new(6.0, -6.0, -6.0);
+        let mut light2_transform = Transform::default();
+        light2_transform.set_translation_xyz(6.0, -6.0, -6.0);
 
-        world.insert(
-            (),
-            vec![
-                (LocalToWorld::identity(), light1, light1_translation),
-                (LocalToWorld::identity(), light2, light2_translation),
-            ],
-        );
+        world.extend(vec![(light1, light1_transform), (light2, light2_transform)]);
 
         println!("Put camera");
 
-        let translation = Translation::new(0.0, 0.0, -12.0);
-        let rotation = Rotation::from_euler_angles(0.0, 0.0, 0.0);
+        let mut transform = Transform::default();
+        transform.set_translation_xyz(0.0, 0.0, -12.0);
+        transform.prepend_rotation_y_axis(std::f32::consts::PI);
 
         let (width, height) = {
             let dim = resources.get::<ScreenDimensions>().unwrap();
             (dim.width(), dim.height())
         };
 
-        world.insert(
-            (),
-            vec![(
-                LocalToWorld::identity(),
-                Camera::standard_3d(width, height),
-                translation,
-                rotation,
-                FlyControl,
-            )],
-        );
-
+        world.extend(vec![(
+            Camera::standard_3d(width, height),
+            transform,
+            FlyControl,
+        )]);
     }
 
-    fn handle_event(
-        &mut self,
-        data: StateData<'_, GameData>,
-        event: StateEvent,
-    ) -> SimpleTrans {
+    fn handle_event(&mut self, data: StateData<'_, GameData>, event: StateEvent) -> SimpleTrans {
         let StateData { resources, .. } = data;
         if let StateEvent::Window(event) = &event {
             if is_key_down(&event, VirtualKeyCode::Escape) {
@@ -170,13 +158,17 @@ fn main() -> Result<(), Error> {
     amethyst::start_logger(Default::default());
 
     let app_root = application_root_dir()?;
+
+    let assets_dir = app_root.join("examples/fly_camera/assets");
     let display_config_path = app_root.join("examples/fly_camera/config/display.ron");
-    let assets_dir = app_root.join("examples/assets");
     let key_bindings_path = app_root.join("examples/fly_camera/config/input.ron");
 
-    let game_data = GameDataBuilder::default()
-        .with_bundle(InputBundle::<StringBindings>::new().with_bindings_from_file(&key_bindings_path)?)
-        .with_bundle(
+    let mut builder = DispatcherBuilder::default();
+    builder
+        .add_bundle(
+            InputBundle::<StringBindings>::new().with_bindings_from_file(&key_bindings_path)?,
+        )
+        .add_bundle(
             FlyControlBundle::<StringBindings>::new(
                 Some(String::from("move_x")),
                 Some(String::from("move_y")),
@@ -184,8 +176,8 @@ fn main() -> Result<(), Error> {
             )
             .with_sensitivity(0.1, 0.1),
         )
-        .with_bundle(TransformBundle)
-        .with_bundle(
+        .add_bundle(TransformBundle)
+        .add_bundle(
             RenderingBundle::<DefaultBackend>::new()
                 .with_plugin(
                     RenderToWindow::from_config_path(display_config_path)?
@@ -196,7 +188,7 @@ fn main() -> Result<(), Error> {
 
     let mut game = Application::build(assets_dir, ExampleState)?
         .with_frame_limit(FrameRateLimitStrategy::Sleep, 60)
-        .build(game_data)?;
+        .build(builder)?;
 
     game.run();
     Ok(())
