@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use amethyst_core::{
     ecs::*,
+    transform::*,
     ParentHierarchy,
 };
 use amethyst_window::ScreenDimensions;
@@ -159,22 +160,18 @@ impl UiTransform {
     }
 }
 
-impl Component for UiTransform {
-    type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;
-}
-
 /// Get the (width, height) in pixels of the parent of this `UiTransform`.
-pub fn get_parent_pixel_size<S: GenericReadStorage<Component = UiTransform>>(
+pub fn get_parent_pixel_size(
     entity: Entity,
-    hierarchy: &ParentHierarchy,
-    ui_transforms: &S,
+    parent: &Option<Parent>,
+    world: SubWorld<'_>,
     screen_dimensions: &ScreenDimensions,
 ) -> (f32, f32) {
     let mut parent_width = screen_dimensions.width();
     let mut parent_height = screen_dimensions.height();
 
-    if let Some(parent) = hierarchy.parent(entity) {
-        if let Some(ui_transform) = ui_transforms.get(parent) {
+    if let Some(parent) = parent {
+        if let Some(ui_transform) = world.entry(parent).map(|entry| entry.get_component::<UiTransform>(parent)) {
             parent_width = ui_transform.pixel_width();
             parent_height = ui_transform.pixel_height();
         }

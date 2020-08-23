@@ -135,33 +135,9 @@ impl TextEditing {
     }
 }
 
-/// This system processes the underlying UI data as needed.
-//#[derive(Debug, SystemDesc)]
-//#[system_desc(name(TextEditingMouseSystemDesc))]
-pub struct TextEditingMouseSystem {
-    /// A reader for winit events.
-    //#[system_desc(event_channel_reader)]
-    reader: ReaderId<Event>,
-    /// This is set to true while the left mouse button is pressed.
-    //#[system_desc(skip)]
-    left_mouse_button_pressed: bool,
-    /// The screen coordinates of the mouse
-    //#[system_desc(skip)]
-    mouse_position: (f32, f32),
-}
-
-impl TextEditingMouseSystem {
-    /// Creates a new instance of this system
-    pub fn new(reader: ReaderId<Event>) -> Self {
-        Self {
-            reader,
-            left_mouse_button_pressed: false,
-            mouse_position: (0., 0.),
-        }
-    }
-}
-
-pub fn build_text_ediditing_mouse_system() -> Box<dyn Schedulable> {
+pub fn build_text_ediditing_mouse_system(mut reader: ReaderId<Event>) -> impl Runnable {
+    let mut mouse_position = (0.0, 0.0);
+    let mut left_mouse_button_pressed = false;
     SystemBuilder::<()>::new("TextEditingMouseSystem")
         .read_resource::<EventChannel<Event>>()
         .read_resource::<ScreenDimensions>()
@@ -189,7 +165,7 @@ pub fn build_text_ediditing_mouse_system() -> Box<dyn Schedulable> {
             let mut moved_while_pressed = false;
 
             // Process only if an editable text is selected.
-            for event in events.read(&mut self.reader) {
+            for event in events.read(&mut reader) {
                 // Process events for the whole UI.
                 match *event {
                     Event::WindowEvent {
@@ -197,11 +173,11 @@ pub fn build_text_ediditing_mouse_system() -> Box<dyn Schedulable> {
                         ..
                     } => {
                         let hidpi = screen_dimensions.hidpi_factor() as f32;
-                        self.mouse_position = (
+                        mouse_position = (
                             position.x as f32 * hidpi,
                             (screen_dimensions.height() - position.y as f32) * hidpi,
                         );
-                        if self.left_mouse_button_pressed {
+                        if left_mouse_button_pressed {
                             moved_while_pressed = true;
                         }
                     }
@@ -216,10 +192,10 @@ pub fn build_text_ediditing_mouse_system() -> Box<dyn Schedulable> {
                     } => match state {
                         ElementState::Pressed => {
                             just_pressed = true;
-                            self.left_mouse_button_pressed = true;
+                            left_mouse_button_pressed = true;
                         }
                         ElementState::Released => {
-                            self.left_mouse_button_pressed = false;
+                            left_mouse_button_pressed = false;
                         }
                     },
                     _ => {}
@@ -236,7 +212,7 @@ pub fn build_text_ediditing_mouse_system() -> Box<dyn Schedulable> {
                 } else if just_pressed {
                     // If we focused an editable text field be sure to position the cursor
                     // in it.
-                    let (mouse_x, mouse_y) = self.mouse_position;
+                    let (mouse_x, mouse_y) = mouse_position;
                     text_editing.highlight_vector = 0;
                     text_editing.cursor_position =
                         closest_glyph_index_to_mouse(mouse_x, mouse_y, &text.cached_glyphs);
@@ -250,7 +226,7 @@ pub fn build_text_ediditing_mouse_system() -> Box<dyn Schedulable> {
                         text_editing.cursor_position += 1;
                     }
                 } else if moved_while_pressed {
-                    let (mouse_x, mouse_y) = self.mouse_position;
+                    let (mouse_x, mouse_y) = mouse_position;
                     text_editing.highlight_vector =
                         closest_glyph_index_to_mouse(mouse_x, mouse_y, &text.cached_glyphs)
                             - text_editing.cursor_position;
