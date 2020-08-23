@@ -1,4 +1,4 @@
-use amethyst_core::ecs::prelude::*;
+use amethyst_core::ecs::*;
 use std::cmp::Ordering;
 
 use crate::{Selectable, Selected};
@@ -12,22 +12,22 @@ use thread_profiler::profile_scope;
 #[derive(Debug, Clone, Default)]
 pub struct CachedSelectionOrder {
     /// The cached bitset.
-    pub cached: BitSet,
+    //pub cached: BitSet,
     /// The cache holding the selection order and the corresponding entity.
     pub cache: Vec<(u32, Entity)>,
 }
 
 impl CachedSelectionOrder {
     /// Returns the index of the highest cached element (index in the cache!) that is currently selected.
-    pub fn highest_order_selected_index<T: GenericReadStorage<Component = Selected>>(
+    pub fn highest_order_selected_index(
         &self,
-        selected_storage: &T,
+        world: &SubWorld<'_>,
     ) -> Option<usize> {
         self.cache
             .iter()
             .enumerate()
             .rev()
-            .find(|(_, (_, e))| selected_storage.get(*e).is_some())
+            .find(|(_, (_, e))| world.entry(*e).map(|entry| entry.get_component::<Selected>().is_some()).unwrap_or(false))
             .map(|t| t.0)
     }
 
@@ -42,7 +42,7 @@ impl CachedSelectionOrder {
 }
 
 /// System in charge of updating the CachedSelectionOrder resource on each frame.
-pub fn build_cache_selection_order_system<G>() -> Box<dyn Schedulable> 
+pub fn build_cache_selection_order_system<G>() -> impl Runnable
 where 
     G:  PartialEq + Send + Sync + 'static,
 {
@@ -63,9 +63,9 @@ where
                     }
                     keep
                 });
-                rm.iter().for_each(|e| {
+                /*rm.iter().for_each(|e| {
                     cache.cached.remove(*e);
-                });
+                });*/
             }
 
             for &mut (ref mut t, entity) in &mut cache.cache {
@@ -74,7 +74,7 @@ where
 
             // Attempt to insert the new entities in sorted position.  Should reduce work during
             // the sorting step.
-            let transform_set = selectables.mask().clone();
+            //let transform_set = selectables.mask().clone();
             {
                 let mut inserts = vec![];
                 let mut pushes = vec![];
@@ -95,7 +95,7 @@ where
                 inserts.iter().for_each(|e| cache.cache.insert(e.0, e.1));
                 pushes.iter().for_each(|e| cache.cache.push(*e));
             }
-            cache.cached = transform_set;
+            //cache.cached = transform_set;
     
             // Sort from smallest tab order to largest tab order, then by entity creation time.
             // Most of the time this shouldn't do anything but you still need it for if the tab orders
