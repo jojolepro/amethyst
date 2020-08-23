@@ -8,9 +8,7 @@ use winit::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use amethyst_core::{
     ecs::*,
     shrev::EventChannel,
-    SystemDesc,
 };
-use amethyst_derive::SystemDesc;
 use amethyst_input::{BindingTypes, InputHandler};
 
 use crate::{CachedSelectionOrder, UiEvent, UiEventType};
@@ -56,34 +54,29 @@ impl Component for Selected {
 /// System managing the selection of entities.
 /// Reacts to `UiEvent`.
 /// Reacts to Tab and Shift+Tab.
-#[derive(Debug, SystemDesc)]
-#[system_desc(name(SelectionKeyboardSystemDesc))]
-pub struct SelectionKeyboardSystem<G>
-where
-    G: Send + Sync + 'static + PartialEq,
-{
-    #[system_desc(event_channel_reader)]
-    window_reader_id: ReaderId<Event>,
-    phantom: PhantomData<G>,
-}
-
-impl<G> SelectionKeyboardSystem<G>
-where
-    G: Send + Sync + 'static + PartialEq,
-{
-    /// Creates a new `SelectionKeyboardSystem`.
-    pub fn new(window_reader_id: ReaderId<Event>) -> Self {
-        Self {
-            window_reader_id,
-            phantom: PhantomData,
+pub fn build_selection_keyboard_system<G: PartialEq>(mut reader: ReaderId<Event>) -> impl Runnable {
+    SystemBuilder::new("SelectionKeyboardSystem")
+        .with_query(
+            <(Entity, &mut Transform)>::query().filter(maybe_changed::<Transform>() & !component::<Parent>()),
+        )
+        // Entities that are children of some entity
+        .with_query(
+            <(Entity, &mut Transform)>::query().filter(maybe_changed::<Transform>() & component::<Parent>()),
+        )
+        .with_query(
+            <(&mut UiText)>::query(),
+        )
+        .with_query(<(Entity, &Parent)>::query())
+        .write_component::<Transform>()
+        .read_resource::<EventChannel<Event>>()
+        .build(
+            move |_commands, world, _resource, (query_root, query_children, query_parent)| {
+                // Update global transform for entities that are root of the hierarchy
+                for (entity, transform) in query_root.iter_mut(world) {
+            }
         }
-    }
+    )
 }
-
-impl<'a, G> System<'a> for SelectionKeyboardSystem<G>
-where
-    G: Send + Sync + 'static + PartialEq,
-{
     type SystemData = (
         Read<'a, EventChannel<Event>>,
         Read<'a, CachedSelectionOrder>,
