@@ -4,11 +4,10 @@ use amethyst_core::{
     ecs::*,
     shrev::{EventChannel, ReaderId},
 };
-use amethyst_derive::SystemDesc;
 
 use crate::{
     event::{UiEvent, UiEventType::*},
-    event_retrigger::{EventRetrigger, EventRetriggerSystem, EventRetriggerSystemDesc},
+    event_retrigger::{EventRetrigger, EventRetriggerSystem},
     EventReceiver,
 };
 

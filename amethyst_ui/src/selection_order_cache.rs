@@ -69,7 +69,7 @@ where
             }
 
             for &mut (ref mut t, entity) in &mut cache.cache {
-                *t = selectables.get(entity).unwrap().order;
+                *t = world.entry(entity).unwrap().get_component::<Selectable<G>>().unwrap().order;
             }
 
             // Attempt to insert the new entities in sorted position.  Should reduce work during

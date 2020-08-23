@@ -10,7 +10,6 @@ use amethyst_core::{
     ecs::*,
     shrev::{EventChannel, ReaderId},
 };
-use amethyst_derive::SystemDesc;
 
 use crate::{LineMode, Selected, TextEditing, UiEvent, UiEventType, UiText};
 
@@ -22,7 +21,7 @@ use crate::{LineMode, Selected, TextEditing, UiEvent, UiEventType, UiText};
 pub fn build_text_editing_input_system(mut reader: ReaderId<Event>) -> impl Runnable {
     SystemBuilder::new("TextEditingInputSystem")
         .with_query(
-            <(&mut UiText)>::query(),
+            <&mut UiText>::query(),
         )
         .with_query(
             <(Entity, &mut UiText, &mut TextEditing, &Selected)>::query(),
