@@ -7,7 +7,7 @@ starting the logger, opening a window and preparing a simple rendering setup.
 
 Let's start a new project:
 
-`amethyst new pong`
+`cargo new pong`
 
 Update the dependencies in the project's `Cargo.toml` so that it contains:
 
@@ -19,7 +19,7 @@ authors = []
 edition = "2018"
 
 [dependencies.amethyst]
-version = "0.14"
+version = "0.15"
 features = ["vulkan"]
 ```
 
@@ -27,7 +27,7 @@ Alternatively, if you are developing on macOS, you might want to use the `metal`
 
 ```toml
 [dependencies.amethyst]
-version = "0.14"
+version = "0.15"
 features = ["metal"]
 ```
 

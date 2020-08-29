@@ -280,10 +280,7 @@ fn load_sprite_sheet(world: &mut World, png_path: &str, ron_path: &str) -> Sprit
 fn init_reference_sprite(world: &mut World, sprite_sheet: &SpriteSheetHandle) -> Entity {
     let mut transform = Transform::default();
     transform.set_translation_xyz(0.0, 0.0, 0.1);
-    let sprite = SpriteRender {
-        sprite_sheet: sprite_sheet.clone(),
-        sprite_number: 0,
-    };
+    let sprite = SpriteRender::new(sprite_sheet.clone(), 0);
     world
         .create_entity()
         .with(transform)
@@ -297,10 +294,7 @@ fn init_reference_sprite(world: &mut World, sprite_sheet: &SpriteSheetHandle) ->
 fn init_screen_reference_sprite(world: &mut World, sprite_sheet: &SpriteSheetHandle) -> Entity {
     let mut transform = Transform::default();
     transform.set_translation_xyz(-250.0, -245.0, 0.1);
-    let sprite = SpriteRender {
-        sprite_sheet: sprite_sheet.clone(),
-        sprite_number: 0,
-    };
+    let sprite = SpriteRender::new(sprite_sheet.clone(), 0);
     world
         .create_entity()
         .with(transform)
@@ -313,10 +307,7 @@ fn init_screen_reference_sprite(world: &mut World, sprite_sheet: &SpriteSheetHan
 fn init_player(world: &mut World, sprite_sheet: &SpriteSheetHandle) -> Entity {
     let mut transform = Transform::default();
     transform.set_translation_xyz(0.0, 0.0, 0.1);
-    let sprite = SpriteRender {
-        sprite_sheet: sprite_sheet.clone(),
-        sprite_number: 1,
-    };
+    let sprite = SpriteRender::new(sprite_sheet.clone(), 1);
     world
         .create_entity()
         .with(transform)
@@ -414,19 +405,19 @@ impl SimpleState for Example {
 }
 
 fn main() -> amethyst::Result<()> {
-    // amethyst::Logger::from_config(Default::default())
-    //     .level_for("amethyst_tiles", log::LevelFilter::Warn)
-    //     .start();
+    amethyst::Logger::from_config(Default::default())
+        .level_for("amethyst_tiles", log::LevelFilter::Warn)
+        .start();
 
     let app_root = application_root_dir()?;
-    let assets_directory = app_root.join("examples/assets");
-    let display_config_path = app_root.join("examples/tiles/resources/display_config.ron");
+    let assets_directory = app_root.join("examples/tiles/assets");
+    let display_config_path = app_root.join("examples/tiles/config/display.ron");
 
     let game_data = GameDataBuilder::default()
         .with_bundle(TransformBundle::new())?
         .with_bundle(
             InputBundle::<StringBindings>::new()
-                .with_bindings_from_file("examples/tiles/resources/input.ron")?,
+                .with_bindings_from_file("examples/tiles/config/input.ron")?,
         )?
         .with(
             MapMovementSystem::default(),
