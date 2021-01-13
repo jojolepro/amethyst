@@ -100,9 +100,11 @@ If you are defining a new format that may be useful to others, [please send us a
     # pub type EnergyBlastHandle = Handle<EnergyBlast>;
     #
     # impl Asset for EnergyBlast {
-    #     const NAME: &'static str = "my_crate::EnergyBlast";
     #     type Data = Self;
     #     type HandleStorage = VecStorage<EnergyBlastHandle>;
+    #     fn name() -> &'static str {
+    #         "my_crate::EnergyBlast"
+    #     }
     # }
     #
     # impl From<EnergyBlast> for Result<ProcessingState<EnergyBlast>, Error> {
@@ -140,8 +142,8 @@ If you are defining a new format that may be useful to others, [please send us a
     #  }
     #
     impl SimpleState for LoadingState {
-        fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-            let loader = &data.world.read_resource::<Loader>();
+        fn on_start(&mut self, data: StateData<'_, GameData>) {
+            let loader = &data.world.read_resource::<DefaultLoader>();
             let energy_blast_handle = loader.load(
                 "energy_blast.mylang",
                 MyLangFormat,
@@ -154,7 +156,7 @@ If you are defining a new format that may be useful to others, [please send us a
     #
     #     fn update(
     #         &mut self,
-    #         _data: &mut StateData<'_, GameData<'_, '_>>,
+    #         _data: &mut StateData<'_, GameData>,
     #     ) -> SimpleTrans {
     #         Trans::Quit
     #     }
@@ -182,6 +184,6 @@ If you are defining a new format that may be useful to others, [please send us a
     ```
 
 [bk_custom_assets]: how_to_define_custom_assets.html
-[doc_hrs]: https://docs.amethyst.rs/stable/amethyst_assets/struct.HotReloadStrategy.html
+[doc_hrs]: https://docs.amethyst.rs/master/amethyst_assets/struct.HotReloadStrategy.html
 [doc_ron_format]: https://docs.amethyst.rs/stable/amethyst_assets/struct.RonFormat.html
 [gh_contributing]: https://github.com/amethyst/amethyst/blob/master/docs/CONTRIBUTING.md

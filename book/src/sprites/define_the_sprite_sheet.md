@@ -72,7 +72,7 @@ Once you have ron file ready, you can load it using the texture handle of the sh
 #
 # fn load_sprite_sheet() {
 #   let world = World::new();
-#   let loader = world.read_resource::<Loader>();
+#   let loader = world.read_resource::<DefaultLoader>();
 #   let texture_handle = load_texture();
 #   let spritesheet_storage = world.read_resource::<AssetStorage<SpriteSheet>>();
 let spritesheet_handle = loader.load(
@@ -142,5 +142,5 @@ pub fn load_sprite_sheet(texture: Handle<Texture>) -> SpriteSheet {
 
 
 
-[doc_grid]: https://docs.amethyst.rs/stable/amethyst_rendy/sprite/struct.SpriteGrid.html
-[doc_list]: https://docs.amethyst.rs/stable/amethyst_rendy/sprite/struct.SpriteList.html
+[doc_grid]: https://docs.amethyst.rs/master/amethyst_rendy/sprite/struct.SpriteGrid.html
+[doc_list]: https://docs.amethyst.rs/master/amethyst_rendy/sprite/struct.SpriteList.html

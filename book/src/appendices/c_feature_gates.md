@@ -22,10 +22,13 @@ At the time of writing, the list of features of this type is the following:
 * `network`
 * `renderer`
 * `saveload`
+* `ui`
 * `sdl_controller`
 
-The full list of available features is available in the [Cargo.toml](https://github.com/amethyst/amethyst/blob/master/Cargo.toml) file.
+The full list of available features is available in the [Cargo.toml] file.
 The available features might change from time to time.
+
+[Cargo.toml]: https://github.com/amethyst/amethyst/blob/master/Cargo.toml
 
 ## Graphics features
 
@@ -50,7 +53,7 @@ by [shaderc]). Please note, that on Windows this feature requires [Ninja] to be 
 
 ## Using Amethyst testing utility
 
-As described in the [Testing chapter](../testing.html), Amethyst has several utilities to help you
+As described in the [Testing chapter][bk_test], Amethyst has several utilities to help you
 test an application written using Amethyst. For some cases (especially when rendering components 
 are involved in the test), you need to enable the `test-support` feature.
 
@@ -63,24 +66,7 @@ cargo (build/test/run) --features profiler
 ```
 
 The next time you will run a project, upon closing it, a file will be created at the root of the project called `thread_profile.json`.
-You can open this file using the chromium browser (or google chrome) and navigating to [chrome://tracing](chrome://tracing)
-
-## Nightly
-
-> **Note:** Only applicable to Amethyst 0.14 and earlier.
->
-> Version after 0.14 no longer have the `"nightly"` feature, as the type names are available on stable Rust.
-
-Enabling the `nightly` feature adds a bit of debug information when running into runtime issues. To
-use it, you need to use the nightly rust compiler toolchain.
-
-Here is how to enable it:
-
-```ignore
-cargo (build/test/run) --features nightly
-```
-
-The most common use of this feature is to find out the type name of the resource that is missing, such as when a `Resources::fetch()` or `World::read_resource()` invocation fails.
+You can open this file using the chromium browser (or google chrome) and navigating to chrome://tracing
 
 ## Amethyst as a dependency
 
@@ -92,3 +78,5 @@ version = "*"
 default-features = false
 features = ["audio", "animation"] # you can add more or replace those
 ```
+
+[bk_test]: ../testing.html

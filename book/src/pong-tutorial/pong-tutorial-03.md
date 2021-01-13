@@ -54,7 +54,7 @@ axes we defined. Let's make the following changes to `main.rs`.
 # extern crate amethyst;
 # use amethyst::prelude::*;
 # use amethyst::core::transform::TransformBundle;
-# use amethyst::utils::application_root_dir;
+# use amethyst_utils::application_root_dir;
 # use amethyst::window::DisplayConfig;
 # macro_rules! env { ($x:expr) => ("") }
 # fn main() -> amethyst::Result<()> {
@@ -390,7 +390,7 @@ will take care of that for us, as well as set up the storage.
 # fn load_sprite_sheet(world: &mut World) -> Handle<SpriteSheet> { unimplemented!() }
 # struct MyState;
 # impl SimpleState for MyState {
-fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+fn on_start(&mut self, data: StateData<'_, GameData>) {
     let world = data.world;
 
     // Load the spritesheet necessary to render the graphics.
@@ -411,5 +411,5 @@ keypresses, and move our game's paddles accordingly. In the next chapter, we'll
 explore another key concept in real-time games: time. We'll make our game aware
 of time, and add a ball for our paddles to bounce back and forth.
 
-[doc_time]: https://docs.amethyst.rs/stable/amethyst_core/timing/struct.Time.html
-[doc_bindings]: https://docs.amethyst.rs/stable/amethyst_input/struct.Bindings.html
+[doc_time]: https://docs.amethyst.rs/master/amethyst_core/timing/struct.Time.html
+[doc_bindings]: https://docs.amethyst.rs/master/amethyst_input/struct.Bindings.html

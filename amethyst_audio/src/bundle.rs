@@ -1,37 +1,49 @@
 //! ECS audio bundles
 
-use amethyst_assets::Processor;
-use amethyst_core::{
-    bundle::SystemBundle,
-    ecs::prelude::{DispatcherBuilder, World},
-    SystemDesc,
-};
+//use amethyst_assets::AssetProcessorSystemBundle;
+use amethyst_core::ecs::*;
 use amethyst_error::Error;
 
-use crate::{output::Output, source::*, systems::AudioSystemDesc};
+use crate::{output::OutputWrapper, systems::*};
 
 /// Audio bundle
 ///
-/// This will only add the audio system and the asset processor for `Source`.
+/// This will add an empty SelectedListener, OutputWrapper, add the audio system and the asset processor for `Source`.
 ///
 /// `DjSystem` must be added separately if you want to use our background music system.
-///
-/// The generic N type should be the same as the one in `Transform`.
 #[derive(Default, Debug)]
-pub struct AudioBundle(Output);
+pub struct AudioBundle;
 
-impl<'a, 'b> SystemBundle<'a, 'b> for AudioBundle {
-    fn build(
-        self,
-        world: &mut World,
-        builder: &mut DispatcherBuilder<'a, 'b>,
+impl SystemBundle for AudioBundle {
+    fn load(
+        &mut self,
+        _world: &mut World,
+        resources: &mut Resources,
+        builder: &mut DispatcherBuilder,
     ) -> Result<(), Error> {
-        builder.add(
-            AudioSystemDesc::new(self.0).build(world),
-            "audio_system",
-            &[],
-        );
-        builder.add(Processor::<Source>::new(), "source_processor", &[]);
+        if !resources.contains::<OutputWrapper>() {
+            resources.insert(OutputWrapper::default());
+        }
+        resources.insert(SelectedListener(None));
+        builder.add_system(Box::new(AudioSystem));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn add_audio_bundle_should_not_crash_when_executing_iter() {
+        let mut resources = Resources::default();
+        let mut world = World::default();
+
+        let mut dispatcher = DispatcherBuilder::default()
+            .add_bundle(AudioBundle)
+            .build(&mut world, &mut resources)
+            .unwrap();
+
+        dispatcher.execute(&mut world, &mut resources);
     }
 }
